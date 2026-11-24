@@ -5,6 +5,7 @@ export type Route =
   | { name: 'post'; slug: string }
   | { name: 'archive' }
   | { name: 'about' }
+  | { name: 'admin' }
   | { name: 'not-found' }
 
 const route = ref<Route>({ name: 'home' })
@@ -19,6 +20,7 @@ function parseRoute(hash: string): Route {
   if (!path) return { name: 'home' }
   if (path === 'archive') return { name: 'archive' }
   if (path === 'about') return { name: 'about' }
+  if (path === 'admin') return { name: 'admin' }
 
   const postMatch = /^posts\/([^/]+)$/.exec(path)
   if (postMatch?.[1]) {

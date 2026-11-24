@@ -31,6 +31,8 @@ featured: true
 
 正文由 `marked` 渲染，支持标题、列表、引用、代码块和链接等标准 Markdown 语法。`updatedAt` 和 `featured` 可省略；`featured: true` 会启用首页的精选样式。
 
+发布页位于 `/#/admin`。当前可以撰写、预览、复制或下载 Markdown，但认证和发布 API 尚未接入，发布按钮保持禁用。后续计划见 `TODO.md`。
+
 ## 自动构建产物
 
 推送 `main` 分支会触发 `.github/workflows/release.yml`，构建并更新 `latest` Release：

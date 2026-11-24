@@ -5,6 +5,7 @@ import AppHeader from '@/components/AppHeader.vue'
 import { useRoute, type Route } from '@/composables/useRoute'
 import { useTheme } from '@/composables/useTheme'
 import AboutView from '@/views/AboutView.vue'
+import AdminView from '@/views/AdminView.vue'
 import ArchiveView from '@/views/ArchiveView.vue'
 import HomeView from '@/views/HomeView.vue'
 import NotFoundView from '@/views/NotFoundView.vue'
@@ -19,6 +20,7 @@ const documentTitles: Record<Route['name'], string> = {
   post: '文章 · sudo4',
   archive: '归档 · sudo4',
   about: '关于 · sudo4',
+  admin: '发布 · sudo4',
   'not-found': '404 · sudo4',
 }
 
@@ -70,6 +72,7 @@ onBeforeUnmount(() => {
         />
         <ArchiveView v-else-if="route.name === 'archive'" key="archive" />
         <AboutView v-else-if="route.name === 'about'" key="about" />
+        <AdminView v-else-if="route.name === 'admin'" key="admin" />
         <NotFoundView v-else key="not-found" />
       </Transition>
     </main>

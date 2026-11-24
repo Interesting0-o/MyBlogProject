@@ -9,7 +9,27 @@ cd frontend && yarn && yarn dev
 cd backend && cargo run
 ```
 
-前端环境配置位于 `frontend/.env`，可参考 `frontend/.env.example`。后端配置位于根目录 `.env`。
+前后端共用根目录 `.env`，配置模板为 `.env.example`。`VITE_` 前缀变量会注入前端构建，其余变量仅后端读取。
+
+## 写文章
+
+文章放在 `frontend/src/content/posts/`，使用 Markdown 和 Frontmatter，文件名会自动作为文章 URL 的 slug：
+
+```markdown
+---
+title: 文章标题
+description: 文章摘要
+publishedAt: 2026-11-24
+updatedAt: 2026-11-25
+tags: Rust, Backend
+readingMinutes: 6
+featured: true
+---
+
+这里开始写正文。
+```
+
+正文由 `marked` 渲染，支持标题、列表、引用、代码块和链接等标准 Markdown 语法。`updatedAt` 和 `featured` 可省略；`featured: true` 会启用首页的精选样式。
 
 ## 自动构建产物
 

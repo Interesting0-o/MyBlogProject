@@ -36,10 +36,6 @@ function scrollToTop() {
           {{ profile.name }}<span class="footer-cursor" aria-hidden="true">_</span>
         </a>
         <p class="footer-tagline">{{ profile.tagline }}</p>
-        <p class="footer-status">
-          <span class="footer-status-dot" aria-hidden="true"></span>
-          all systems nominal
-        </p>
       </div>
 
       <nav class="footer-column" aria-label="站内导航">
@@ -141,25 +137,6 @@ function scrollToTop() {
   line-height: 1.8;
 }
 
-.footer-status {
-  display: inline-flex;
-  margin-top: 1.4rem;
-  align-items: center;
-  gap: 7px;
-  color: var(--text-muted);
-  font-family: var(--font-mono);
-  font-size: var(--text-label);
-}
-
-.footer-status-dot {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: var(--accent);
-  box-shadow: 0 0 0 4px var(--accent-soft);
-  animation: footer-status-pulse 2.8s ease-in-out infinite;
-}
-
 .footer-column {
   display: flex;
   flex-direction: column;
@@ -252,17 +229,6 @@ kbd {
   49%,
   100% {
     opacity: 0;
-  }
-}
-
-@keyframes footer-status-pulse {
-  0%,
-  100% {
-    opacity: 1;
-  }
-
-  50% {
-    opacity: 0.45;
   }
 }
 

@@ -1,48 +1,27 @@
 <script setup lang="ts">
-import { formatDate, formatIndex } from '@/utils/format'
+import { formatMonthDay } from '@/utils/format'
 import type { Post } from '@/types/blog'
 
 defineProps<{
   post: Post
-  index: number
-  featured?: boolean
 }>()
 </script>
 
 <template>
-  <article :class="['post-card', { 'post-card--featured': featured }]">
+  <article class="post-card">
     <a class="post-link" :href="`#/posts/${post.slug}`">
-      <div class="post-top">
-        <span class="post-index">{{ formatIndex(index) }}</span>
+      <h3 class="post-title">{{ post.title }}</h3>
+
+      <div class="post-meta-row">
         <div class="post-meta">
-          <time :datetime="post.publishedAt">{{ formatDate(post.publishedAt) }}</time>
+          <time :datetime="post.publishedAt">{{ formatMonthDay(post.publishedAt) }}</time>
           <span class="meta-divider" aria-hidden="true">/</span>
           <span>{{ post.readingMinutes }} MIN</span>
         </div>
-        <span v-if="featured" class="featured-label">FEATURED</span>
-      </div>
 
-      <h3 class="post-title">{{ post.title }}</h3>
-      <p class="post-excerpt">{{ post.description }}</p>
-
-      <div class="post-bottom">
         <ul class="post-tags" aria-label="文章标签">
           <li v-for="tag in post.tags" :key="tag">#{{ tag }}</li>
         </ul>
-        <span class="post-arrow" aria-hidden="true">
-          <svg
-            viewBox="0 0 24 24"
-            width="16"
-            height="16"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.8"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          >
-            <path d="M7 17 17 7M8 7h9v9" />
-          </svg>
-        </span>
       </div>
     </a>
   </article>
@@ -50,109 +29,18 @@ defineProps<{
 
 <style scoped>
 .post-card {
-  position: relative;
-  overflow: hidden;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  background:
-    radial-gradient(circle at 100% 0, var(--surface-glow), transparent 42%),
-    var(--surface);
-  transition:
-    transform 0.24s ease,
-    border-color 0.24s ease,
-    box-shadow 0.24s ease,
-    background-color 0.24s ease;
-}
-
-.post-card::after {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 2px;
-  background: linear-gradient(90deg, var(--accent), transparent 72%);
-  content: '';
-  opacity: 0;
-  transform: scaleX(0.35);
-  transform-origin: left;
-  transition:
-    opacity 0.24s ease,
-    transform 0.24s ease;
-}
-
-.post-card:hover {
-  border-color: var(--accent-line);
-  box-shadow: var(--shadow-sm);
-  transform: translateY(-2px);
-}
-
-.post-card:hover::after {
-  opacity: 1;
-  transform: scaleX(1);
-}
-
-.post-card--featured {
-  border-color: var(--accent-line);
-  background:
-    linear-gradient(135deg, var(--accent-soft), transparent 58%),
-    radial-gradient(circle at 100% 0, var(--surface-glow), transparent 42%),
-    var(--surface);
-}
-
-.post-card--featured::after {
-  opacity: 1;
-  transform: scaleX(1);
+  transition: color 0.2s ease;
 }
 
 .post-link {
   display: block;
-  padding: 1.5rem 1.6rem 1.35rem;
-}
-
-.post-top {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.post-index {
-  color: var(--accent);
-  font-family: var(--font-mono);
-  font-size: var(--text-label);
-  letter-spacing: 0.04em;
-}
-
-.post-meta {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: var(--text-soft);
-  font-family: var(--font-mono);
-  font-size: var(--text-label);
-  letter-spacing: 0.03em;
-}
-
-.meta-divider {
-  color: var(--border-strong);
-}
-
-.featured-label {
-  margin-left: auto;
-  padding: 3px 7px;
-  border: 1px solid var(--accent-line);
-  border-radius: 4px;
-  color: var(--accent);
-  font-family: var(--font-mono);
-  font-size: var(--text-label);
-  letter-spacing: 0.08em;
-  line-height: 1.4;
+  padding: 10px 0;
 }
 
 .post-title {
-  margin-top: 0.9rem;
   color: var(--text);
-  font-size: clamp(1.35rem, 2.2vw, 1.7rem);
-  letter-spacing: -0.035em;
+  font-size: 1.05rem;
+  letter-spacing: -0.02em;
   transition: color 0.2s ease;
 }
 
@@ -160,78 +48,39 @@ defineProps<{
   color: var(--accent);
 }
 
-.post-excerpt {
-  max-width: 62ch;
-  margin-top: 0.55rem;
-  color: var(--text-soft);
-  font-size: var(--text-body);
-  line-height: 1.78;
+.post-meta-row {
+  display: flex;
+  margin-top: 0.35rem;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 1rem;
 }
 
-.post-bottom {
+.post-meta {
   display: flex;
-  margin-top: 18px;
   align-items: center;
-  justify-content: space-between;
-  gap: 16px;
+  gap: 6px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.03em;
+}
+
+.meta-divider {
+  color: var(--border-strong);
 }
 
 .post-tags {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 0.65rem;
   list-style: none;
 }
 
 .post-tags li {
-  padding: 0.25rem 0.5rem;
-  border-radius: 5px;
-  color: var(--text-soft);
-  background: var(--surface-soft);
-  font-family: var(--font-mono);
-  font-size: var(--text-label);
-  font-weight: 500;
-  letter-spacing: 0.01em;
-}
-
-.post-arrow {
-  display: grid;
-  width: 2rem;
-  height: 2rem;
-  flex: 0 0 auto;
-  place-items: center;
-  border: 1px solid var(--border);
-  border-radius: 50%;
   color: var(--text-muted);
-  transition:
-    color 0.24s ease,
-    border-color 0.24s ease,
-    background-color 0.24s ease,
-    transform 0.24s ease;
-}
-
-.post-card:hover .post-arrow {
-  border-color: var(--accent);
-  color: var(--accent-contrast);
-  background: var(--accent);
-  transform: rotate(6deg);
-}
-
-@media (max-width: 560px) {
-  .post-link {
-    padding: 20px 18px 18px;
-  }
-
-  .post-excerpt {
-    font-size: var(--text-small);
-  }
-
-  .post-bottom {
-    margin-top: 16px;
-  }
-
-  .post-arrow {
-    display: none;
-  }
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  opacity: 0.85;
 }
 </style>

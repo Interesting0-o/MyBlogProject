@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import FeaturedPostCard from '@/components/FeaturedPostCard.vue'
 import PostCard from '@/components/PostCard.vue'
 import ScrollCue from '@/components/ScrollCue.vue'
+import { profile } from '@/content/profile'
 import { fetchPosts } from '@/services/posts'
 import type { Post } from '@/types/blog'
 import { isTypingTarget } from '@/utils/dom'
@@ -18,6 +20,20 @@ const tags = computed(() => {
     a.localeCompare(b, 'zh-CN'),
   )
 })
+
+const featuredPost = computed(() => posts.value.find((post) => post.featured) ?? null)
+const recentPosts = computed(() => posts.value.slice(0, 3))
+
+function shortHash(value: string): string {
+  let hash = 2166136261
+
+  for (const character of value) {
+    hash ^= character.codePointAt(0) ?? 0
+    hash = Math.imul(hash, 16777619)
+  }
+
+  return (hash >>> 0).toString(16).padStart(6, '0').slice(0, 6)
+}
 
 const filteredPosts = computed(() => {
   const keyword = query.value.trim().toLowerCase()
@@ -136,10 +152,6 @@ onBeforeUnmount(() => {
             <dt>TOPICS</dt>
             <dd>{{ tagCountLabel }}</dd>
           </div>
-          <div>
-            <dt>CURIOSITY</dt>
-            <dd>∞</dd>
-          </div>
         </dl>
       </div>
 
@@ -157,27 +169,28 @@ onBeforeUnmount(() => {
         <div class="terminal-body">
           <div class="terminal-block">
             <p class="terminal-line"><span class="prompt">❯</span> whoami</p>
-            <p class="terminal-output">sudo4 — backend &amp; writer</p>
+            <p class="terminal-output terminal-output--identity">
+              <span>{{ profile.username }}</span>
+              <span>— backend / infra / writing</span>
+            </p>
           </div>
 
           <div class="terminal-block">
-            <p class="terminal-line"><span class="prompt">❯</span> cat now.txt</p>
-            <p class="terminal-output">building this blog</p>
-          </div>
-
-          <div class="terminal-block">
-            <p class="terminal-line"><span class="prompt">❯</span> ls ./stack</p>
-            <div class="terminal-chips">
-              <span>rust</span>
-              <span>vue</span>
-              <span>linux</span>
-              <span>postgres</span>
+            <p class="terminal-line"><span class="prompt">❯</span> git log --oneline -3</p>
+            <div v-if="recentPosts.length" class="terminal-log">
+              <a
+                v-for="post in recentPosts"
+                :key="post.slug"
+                class="terminal-log-line"
+                :href="`#/posts/${post.slug}`"
+              >
+                <span class="terminal-log-hash">{{ shortHash(post.slug) }}</span>
+                <span class="terminal-log-title">{{ post.title }}</span>
+              </a>
             </div>
-          </div>
-
-          <div class="terminal-block">
-            <p class="terminal-line"><span class="prompt">❯</span> cat status.txt</p>
-            <p class="terminal-output">open to build · online</p>
+            <p v-else class="terminal-log-empty">
+              {{ loadError ? 'connection lost' : loading ? 'loading…' : 'no commits yet' }}
+            </p>
           </div>
 
           <p class="terminal-line terminal-line--caret">
@@ -189,10 +202,6 @@ onBeforeUnmount(() => {
         <div class="terminal-footer">
           <span>UTF-8</span>
           <span>git:main</span>
-          <span class="terminal-connected">
-            <i aria-hidden="true"></i>
-            connected
-          </span>
         </div>
       </aside>
 
@@ -201,6 +210,8 @@ onBeforeUnmount(() => {
 
     <section id="writing" class="writing container">
       <div class="writing-main">
+        <FeaturedPostCard v-if="featuredPost" :post="featuredPost" />
+
         <div class="section-head">
           <div>
             <span class="section-kicker">// LATEST POSTS</span>
@@ -298,13 +309,16 @@ onBeforeUnmount(() => {
 
         <div v-else class="post-list">
           <PostCard
-            v-for="(post, index) in filteredPosts"
+            v-for="post in filteredPosts"
             :key="post.slug"
             :post="post"
-            :index="index"
-            :featured="post.featured"
           />
         </div>
+
+        <a v-if="!loading && !loadError" class="archive-link" href="#/archive">
+          查看全部文章
+          <span aria-hidden="true">→</span>
+        </a>
       </div>
 
       <aside class="sidebar">
@@ -313,7 +327,7 @@ onBeforeUnmount(() => {
           <div class="side-profile">
             <span class="side-avatar" aria-hidden="true">❯_</span>
             <div>
-              <strong>sudo4</strong>
+              <strong>{{ profile.username }}</strong>
               <span>builder / writer</span>
             </div>
           </div>
@@ -335,24 +349,8 @@ onBeforeUnmount(() => {
               <span>reading</span>
               <strong>DDIA</strong>
             </li>
-            <li>
-              <span>status</span>
-              <strong class="side-online">
-                <i aria-hidden="true"></i>
-                online
-              </strong>
-            </li>
           </ul>
         </section>
-
-        <a class="side-card side-card--link" href="#/archive">
-          <span class="side-label">// ARCHIVE</span>
-          <span class="side-link-title">
-            全部文章
-            <span aria-hidden="true">↗</span>
-          </span>
-          <span class="side-link-meta">{{ postCountLabel }} entries, newest first</span>
-        </a>
       </aside>
     </section>
   </div>
@@ -384,6 +382,7 @@ onBeforeUnmount(() => {
   background: var(--ambient-glow);
   content: '';
   filter: blur(18px);
+  opacity: 0.66;
   pointer-events: none;
   transform: translate(-50%, -50%);
 }
@@ -420,7 +419,7 @@ onBeforeUnmount(() => {
 .hero h1 {
   max-width: 9.2em;
   margin-top: 1.5rem;
-  font-size: clamp(2.8rem, 5.7vw, 5rem);
+  font-size: clamp(2.3rem, 4.8vw, 3.8rem);
   font-weight: 650;
   letter-spacing: -0.055em;
   line-height: 1.06;
@@ -463,7 +462,7 @@ onBeforeUnmount(() => {
   padding: 0.72rem 1.25rem;
   border: 1px solid transparent;
   border-radius: var(--radius-sm);
-  font-family: var(--font-mono);
+  font-family: var(--font-sans);
   font-size: var(--text-meta);
   letter-spacing: 0.01em;
   transition:
@@ -581,8 +580,8 @@ onBeforeUnmount(() => {
 
 .terminal-body {
   display: grid;
-  gap: 1.1rem;
-  padding: 1.5rem;
+  gap: 1.4rem;
+  padding: 1.7rem 1.6rem;
   font-family: var(--font-mono);
   font-size: var(--text-small);
   line-height: 1.72;
@@ -612,19 +611,54 @@ onBeforeUnmount(() => {
   color: var(--text-soft);
 }
 
-.terminal-chips {
+.terminal-output--identity {
   display: flex;
-  margin: 8px 0 0 1.1rem;
   flex-wrap: wrap;
-  gap: 6px;
+  align-items: baseline;
+  column-gap: 0.35em;
+  row-gap: 0.1em;
+  font-size: var(--text-meta);
+  letter-spacing: -0.01em;
 }
 
-.terminal-chips span {
-  padding: 3px 9px;
-  border: 1px solid var(--border);
-  border-radius: 4px;
+.terminal-output--identity span {
+  white-space: nowrap;
+}
+
+.terminal-log {
+  display: grid;
+  margin: 8px 0 0 1.1rem;
+  gap: 0.35rem;
+}
+
+.terminal-log-line {
+  display: flex;
+  min-width: 0;
+  align-items: baseline;
+  gap: 0.65rem;
+  color: var(--text-soft);
+  font-size: var(--text-label);
+  transition: color 0.2s ease;
+}
+
+.terminal-log-line:hover {
   color: var(--accent);
-  background: var(--accent-soft);
+}
+
+.terminal-log-hash {
+  flex: 0 0 auto;
+  color: var(--accent);
+}
+
+.terminal-log-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.terminal-log-empty {
+  margin: 8px 0 0 1.1rem;
+  color: var(--text-muted);
   font-size: var(--text-label);
 }
 
@@ -648,20 +682,6 @@ onBeforeUnmount(() => {
   font-family: var(--font-mono);
   font-size: var(--text-label);
   letter-spacing: 0.03em;
-}
-
-.terminal-connected {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  color: var(--accent);
-}
-
-.terminal-connected i {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: var(--accent);
 }
 
 .writing {
@@ -693,7 +713,7 @@ onBeforeUnmount(() => {
 
 .section-head h2 {
   margin-top: 0.5rem;
-  font-size: clamp(1.9rem, 3.2vw, 2.5rem);
+  font-size: clamp(1.6rem, 2.6vw, 2.1rem);
 }
 
 .search-box {
@@ -828,7 +848,7 @@ onBeforeUnmount(() => {
 
 .post-list {
   display: grid;
-  gap: 14px;
+  gap: 10px;
 }
 
 .skeleton-card {
@@ -1006,51 +1026,17 @@ onBeforeUnmount(() => {
   text-align: right;
 }
 
-.side-online {
+.archive-link {
   display: inline-flex;
+  margin-top: 1.5rem;
   align-items: center;
-  gap: 5px;
-  color: var(--accent) !important;
-}
-
-.side-online i {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: var(--accent);
-}
-
-.side-card--link {
-  transition:
-    border-color 0.2s ease,
-    background-color 0.2s ease;
-}
-
-.side-card--link:hover {
-  border-color: var(--accent-line);
-  background:
-    linear-gradient(135deg, var(--accent-soft), transparent 72%),
-    var(--surface);
-}
-
-.side-link-title {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  color: var(--text);
-  font-size: 1.15rem;
-  font-weight: 600;
-  letter-spacing: -0.02em;
-}
-
-.side-card--link:hover .side-link-title {
+  gap: 6px;
   color: var(--accent);
+  font-size: var(--text-small);
 }
 
-.side-link-meta {
-  color: var(--text-soft);
-  font-family: var(--font-mono);
-  font-size: var(--text-label);
+.archive-link:hover {
+  color: var(--accent-hover);
 }
 
 @keyframes reveal-up {
@@ -1117,7 +1103,7 @@ onBeforeUnmount(() => {
 
   .sidebar {
     position: static;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -1164,7 +1150,7 @@ onBeforeUnmount(() => {
 
 @media (max-width: 480px) {
   .hero h1 {
-    font-size: clamp(2.1rem, 11vw, 2.8rem);
+    font-size: clamp(1.9rem, 9vw, 2.5rem);
   }
 
   .hero-actions .button {
@@ -1178,7 +1164,8 @@ onBeforeUnmount(() => {
   }
 
   .terminal-output,
-  .terminal-chips {
+  .terminal-log,
+  .terminal-log-empty {
     margin-left: 12px;
   }
 

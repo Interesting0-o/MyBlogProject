@@ -63,7 +63,10 @@ function isExternal(href: string): boolean {
           </div>
           <div class="identity-body">
             <p class="identity-command"><span aria-hidden="true">❯</span> whoami</p>
-            <p class="identity-output">{{ profile.name }} — {{ profile.role }}</p>
+            <p class="identity-output">
+              <span>{{ profile.username }}</span>
+              <span>— {{ profile.role }}</span>
+            </p>
             <p class="identity-command"><span aria-hidden="true">❯</span> cat identity.yml</p>
             <dl>
               <div>
@@ -575,12 +578,22 @@ function isExternal(href: string): boolean {
 }
 
 .identity-output {
+  display: flex;
   margin-top: 4px;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: 0.35em;
+  row-gap: 0.1em;
   color: var(--text);
   font-family: var(--font-mono);
-  font-size: var(--text-small);
+  font-size: var(--text-meta);
   font-weight: 600;
+  letter-spacing: -0.01em;
   line-height: 1.6;
+}
+
+.identity-output span {
+  white-space: nowrap;
 }
 
 .identity-output + .identity-command {

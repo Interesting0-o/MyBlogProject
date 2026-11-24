@@ -9,6 +9,7 @@ export interface ProfileLink {
 
 export const profile = {
   name: 'sudo4',
+  username: 'Interesting0-o',
   handle: '@Interesting0-o',
   role: 'backend engineer / writer',
   tagline: '保持好奇，持续构建。',
@@ -24,8 +25,8 @@ export const profile = {
     {
       kind: 'bilibili',
       label: 'Bilibili',
-      handle: '待配置',
-      href: '',
+      handle: 'UID 494022019',
+      href: 'https://space.bilibili.com/494022019',
     },
     {
       kind: 'repository',

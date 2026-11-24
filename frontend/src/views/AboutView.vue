@@ -1,27 +1,57 @@
 <script setup lang="ts">
+import ProfileLinkIcon from '@/components/ProfileLinkIcon.vue'
 import ScrollCue from '@/components/ScrollCue.vue'
+import { profile } from '@/content/profile'
+
+function isExternal(href: string): boolean {
+  return href.startsWith('http')
+}
 </script>
 
 <template>
   <section class="about-page page-with-glow container">
     <header class="about-hero">
-      <div class="about-hero-copy">
-        <div class="page-kicker">// ABOUT ME</div>
-        <h1>
-          保持好奇，<br />
-          <span>持续构建。</span>
-        </h1>
-        <p class="about-lead">
-          我是 sudo4，一名关注后端与基础设施的工程师。喜欢把复杂的系统拆开、理解，再用更简单的方式装回去。
-          这里记录过程，也记录偶尔冒出来的想法。
-        </p>
-        <div class="about-actions">
-          <a class="button button--primary" href="#/archive">浏览归档 <span aria-hidden="true">→</span></a>
-          <a class="button button--ghost" href="#/">回到首页 <span aria-hidden="true">↩</span></a>
+      <div class="profile-panel">
+        <div class="profile-header">
+          <img
+            class="profile-avatar"
+            :src="profile.avatar"
+            :alt="`${profile.name} 的头像`"
+            width="260"
+            height="260"
+          />
+
+          <div class="profile-copy">
+            <div class="page-kicker">// ABOUT ME</div>
+            <h1>
+              <span class="profile-name">{{ profile.name }}</span>
+              <span class="profile-handle">{{ profile.handle }}</span>
+            </h1>
+            <p class="profile-tagline">{{ profile.tagline }}</p>
+            <p class="profile-bio">{{ profile.bio }}</p>
+          </div>
+        </div>
+
+        <div class="profile-links" aria-label="个人链接">
+          <a
+            v-for="link in profile.links"
+            :key="link.label"
+            class="profile-link"
+            :class="{ 'profile-link--disabled': !link.href }"
+            :href="link.href || undefined"
+            :target="isExternal(link.href) ? '_blank' : undefined"
+            :rel="isExternal(link.href) ? 'noopener noreferrer' : undefined"
+            :aria-disabled="link.href ? undefined : 'true'"
+            :title="link.handle"
+          >
+            <ProfileLinkIcon :kind="link.kind" />
+            <span>{{ link.label }}</span>
+            <span v-if="!link.href" class="profile-link-pending">待配置</span>
+          </a>
         </div>
       </div>
 
-      <div class="about-hero-card">
+      <div class="about-terminal">
         <div class="identity-card">
           <div class="identity-bar">
             <span class="terminal-dots" aria-hidden="true">
@@ -32,9 +62,9 @@ import ScrollCue from '@/components/ScrollCue.vue'
             <span>identity.yml</span>
           </div>
           <div class="identity-body">
-            <span class="identity-avatar" aria-hidden="true">❯_</span>
-            <h2>sudo4</h2>
-            <p class="identity-role">backend engineer / writer</p>
+            <p class="identity-command"><span aria-hidden="true">❯</span> whoami</p>
+            <p class="identity-output">{{ profile.name }} — {{ profile.role }}</p>
+            <p class="identity-command"><span aria-hidden="true">❯</span> cat identity.yml</p>
             <dl>
               <div>
                 <dt>focus</dt>
@@ -53,6 +83,9 @@ import ScrollCue from '@/components/ScrollCue.vue'
                 <dd>2026</dd>
               </div>
             </dl>
+            <p class="identity-command identity-caret">
+              <span aria-hidden="true">❯</span><i aria-hidden="true"></i>
+            </p>
           </div>
         </div>
       </div>
@@ -71,7 +104,7 @@ import ScrollCue from '@/components/ScrollCue.vue'
           <ul class="now-list">
             <li>
               <span class="now-key">BUILDING</span>
-              <span>MyBlogProject — Rust · Axum · PostgreSQL</span>
+              <span>MyBlogProject — Rust · Axum · SQLite</span>
             </li>
             <li>
               <span class="now-key">LEARNING</span>
@@ -150,8 +183,8 @@ import ScrollCue from '@/components/ScrollCue.vue'
           <span class="section-number">04 / THIS SITE</span>
           <h2>关于这个站点</h2>
           <p>
-            这是一个极简的个人空间，用 Vue 3、TypeScript 和 Vite 构建。当前阶段先以静态数据驱动页面，等后端接口就绪后，
-            会把数据层替换成真实的 API。界面保持克制，把注意力留给文字。
+            这是一个极简的个人空间，用 Vue 3、TypeScript 和 Vite 构建，文章通过 Rust/Axum API 从
+            SQLite 读取。界面保持克制，把注意力留给文字。
           </p>
           <blockquote>先让它跑起来，再让它变好。</blockquote>
         </section>
@@ -163,12 +196,6 @@ import ScrollCue from '@/components/ScrollCue.vue'
           <p>“Make it work,<br />make it right,<br />make it fast.”</p>
           <span class="quote-author">— Kent Beck</span>
         </div>
-
-        <div class="terminal-card">
-          <p><span>❯</span> contact --list</p>
-          <p class="terminal-muted">这个站点还在生长，联系入口会在后续开放。</p>
-          <p class="terminal-caret-line"><span>❯</span><i aria-hidden="true"></i></p>
-        </div>
       </aside>
     </div>
   </section>
@@ -176,20 +203,50 @@ import ScrollCue from '@/components/ScrollCue.vue'
 
 <style scoped>
 .about-hero {
+  --terminal-width: clamp(420px, 30vw, 460px);
   position: relative;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) clamp(340px, 28vw, 420px);
+  grid-template-columns: minmax(0, 1fr) var(--terminal-width);
   align-items: center;
-  gap: clamp(2.5rem, 5vw, 5rem);
+  gap: clamp(2rem, 4vw, 4rem);
   min-height: calc(100vh - var(--header-height));
   min-height: calc(100svh - var(--header-height));
-  padding-top: clamp(2rem, 5vh, 4rem);
-  padding-bottom: clamp(4.5rem, 9vh, 7rem);
+  padding-top: clamp(3rem, 7vh, 6rem);
+  padding-bottom: clamp(5rem, 10vh, 8rem);
   border-bottom: 1px solid var(--border);
 }
 
-.about-hero-card {
+.profile-panel {
+  display: flex;
   min-width: 0;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.profile-header {
+  display: flex;
+  width: 100%;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: clamp(1.5rem, 3vw, 2.25rem);
+}
+
+.profile-avatar {
+  width: clamp(200px, 22vw, 260px);
+  height: auto;
+  flex: 0 0 auto;
+  aspect-ratio: 1;
+  border: 1px solid var(--accent-line);
+  border-radius: 50%;
+  background: var(--accent-soft);
+  box-shadow: 0 18px 50px var(--accent-glow);
+  object-fit: cover;
+}
+
+.profile-copy {
+  min-width: 0;
+  max-width: 34rem;
+  flex: 1 1 300px;
 }
 
 .page-kicker {
@@ -200,97 +257,126 @@ import ScrollCue from '@/components/ScrollCue.vue'
 }
 
 .about-hero h1 {
-  margin-top: 1rem;
-  font-size: clamp(2.8rem, 5.7vw, 5rem);
-  letter-spacing: -0.06em;
-  line-height: 1.06;
-}
-
-.about-hero h1 span {
-  color: var(--gradient-accent-a);
-  background: linear-gradient(
-    100deg,
-    var(--gradient-accent-a) 0%,
-    var(--gradient-accent-b) 52%,
-    var(--gradient-accent-c) 100%
-  );
-  background-clip: text;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-
-.about-lead {
-  max-width: 50ch;
-  margin-top: 1.5rem;
-  color: var(--text-soft);
-  font-size: clamp(var(--text-lead), 1.4vw, 1.2rem);
-  line-height: 1.9;
-}
-
-.about-actions {
   display: flex;
-  margin-top: 2rem;
-  flex-wrap: wrap;
-  gap: 0.75rem;
+  margin-top: 0.7rem;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.15rem;
 }
 
-.button {
-  display: inline-flex;
-  min-height: 3rem;
-  align-items: center;
-  justify-content: center;
-  gap: 0.6rem;
-  padding: 0.72rem 1.25rem;
-  border: 1px solid transparent;
-  border-radius: var(--radius-sm);
+.profile-name {
+  color: var(--text-muted);
   font-family: var(--font-mono);
-  font-size: var(--text-meta);
+  font-size: var(--text-label);
+  font-weight: 500;
+  letter-spacing: 0.04em;
+}
+
+.profile-handle {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  color: var(--text);
+  font-size: clamp(1.75rem, 2.9vw, 2.3rem);
+  font-weight: 650;
+  letter-spacing: -0.045em;
+  line-height: 1.05;
+}
+
+.profile-tagline {
+  margin-top: 0.75rem;
+  color: var(--accent);
+  font-size: clamp(0.95rem, 1.3vw, 1.05rem);
+  font-weight: 500;
+  line-height: 1.45;
+}
+
+.profile-bio {
+  max-width: 42ch;
+  margin-top: 0.6rem;
+  color: var(--text-muted);
+  font-size: var(--text-small);
+  line-height: 1.8;
+}
+
+.profile-links {
+  display: flex;
+  width: 100%;
+  margin-top: 1.5rem;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.profile-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.42rem 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--text-soft);
+  background: var(--surface);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  line-height: 1.4;
   transition:
     color 0.2s ease,
-    background-color 0.2s ease,
     border-color 0.2s ease,
-    box-shadow 0.2s ease,
+    background-color 0.2s ease,
     transform 0.2s ease;
 }
 
-.button:hover {
-  transform: translateY(-1px);
-}
-
-.button--primary {
-  color: var(--accent-contrast);
-  background: linear-gradient(120deg, var(--accent), var(--accent-hover));
-  box-shadow: 0 12px 32px var(--accent-glow);
-}
-
-.button--primary:hover {
-  box-shadow: 0 16px 42px var(--accent-glow);
-}
-
-.button--ghost {
-  border-color: var(--border);
-  color: var(--text-soft);
-  background: var(--surface);
-}
-
-.button--ghost:hover {
+.profile-link:hover {
   border-color: var(--accent-line);
   color: var(--accent);
   background: var(--accent-soft);
+  transform: translateY(-1px);
+}
+
+.profile-link--disabled {
+  color: var(--text-muted);
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.profile-link--disabled:hover {
+  border-color: var(--border);
+  color: var(--text-muted);
+  background: var(--surface);
+  transform: none;
+}
+
+.profile-link svg {
+  flex: 0 0 auto;
+  color: var(--text-muted);
+  transition: color 0.2s ease;
+}
+
+.profile-link:hover svg {
+  color: var(--accent);
+}
+
+.profile-link-pending {
+  color: var(--text-muted);
+  font-size: 0.68rem;
+}
+
+.about-terminal {
+  min-width: 0;
+  width: 100%;
 }
 
 .about-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 21rem;
   align-items: start;
-  gap: clamp(2rem, 5vw, 4.5rem);
-  padding-top: clamp(2rem, 4vw, 3.5rem);
+  gap: clamp(2.5rem, 5vw, 5rem);
+  padding-top: clamp(3rem, 6vw, 5rem);
   scroll-margin-top: var(--header-height);
 }
 
 .about-main {
   display: grid;
-  gap: clamp(48px, 8vw, 72px);
+  gap: clamp(56px, 9vw, 88px);
 }
 
 .about-section h2 {
@@ -427,7 +513,10 @@ import ScrollCue from '@/components/ScrollCue.vue'
 }
 
 .identity-card {
+  display: flex;
+  width: 100%;
   overflow: hidden;
+  flex-direction: column;
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   background:
@@ -466,40 +555,41 @@ import ScrollCue from '@/components/ScrollCue.vue'
 }
 
 .identity-body {
-  padding: 22px;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  padding: 24px;
 }
 
-.identity-avatar {
-  display: grid;
-  width: 44px;
-  height: 44px;
-  margin-bottom: 16px;
-  place-items: center;
-  border: 1px solid var(--accent-line);
-  border-radius: 10px;
-  color: var(--accent);
-  background: var(--accent-soft);
-  font-family: var(--font-mono);
-  font-size: var(--text-small);
-}
-
-.identity-body h2 {
-  font-family: var(--font-mono);
-  font-size: 1.25rem;
-  font-weight: 600;
-  letter-spacing: -0.03em;
-}
-
-.identity-role {
-  margin-top: 3px;
+.identity-command {
+  margin: 0;
   color: var(--text-muted);
   font-family: var(--font-mono);
   font-size: var(--text-label);
+  line-height: 1.7;
+}
+
+.identity-command span {
+  margin-right: 7px;
+  color: var(--accent);
+}
+
+.identity-output {
+  margin-top: 4px;
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: var(--text-small);
+  font-weight: 600;
+  line-height: 1.6;
+}
+
+.identity-output + .identity-command {
+  margin-top: 22px;
 }
 
 .identity-body dl {
   display: grid;
-  margin: 20px 0 0;
+  margin: 18px 0 0;
   gap: 10px;
 }
 
@@ -543,6 +633,20 @@ import ScrollCue from '@/components/ScrollCue.vue'
   background: var(--accent);
 }
 
+.identity-caret {
+  display: flex;
+  align-items: center;
+  margin-top: 20px;
+}
+
+.identity-caret i {
+  display: inline-block;
+  width: 7px;
+  height: 13px;
+  background: var(--accent);
+  animation: caret-blink 1.1s step-end infinite;
+}
+
 .quote-card {
   padding: 20px;
   border: 1px solid var(--border);
@@ -573,39 +677,6 @@ import ScrollCue from '@/components/ScrollCue.vue'
   font-size: var(--text-label);
 }
 
-.terminal-card {
-  padding: 18px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  background: var(--surface-raised);
-  font-family: var(--font-mono);
-  font-size: var(--text-label);
-  line-height: 1.75;
-}
-
-.terminal-card span {
-  margin-right: 7px;
-  color: var(--accent);
-}
-
-.terminal-muted {
-  margin-top: 7px;
-  color: var(--text-muted);
-}
-
-.terminal-caret-line {
-  margin-top: 10px;
-}
-
-.terminal-caret-line i {
-  display: inline-block;
-  width: 7px;
-  height: 13px;
-  margin-bottom: -2px;
-  background: var(--accent);
-  animation: caret-blink 1.1s step-end infinite;
-}
-
 @keyframes caret-blink {
   0%,
   48% {
@@ -618,15 +689,21 @@ import ScrollCue from '@/components/ScrollCue.vue'
   }
 }
 
-@media (max-width: 960px) {
+@media (max-width: 1120px) {
+  .about-hero {
+    --terminal-width: clamp(340px, 36vw, 400px);
+    gap: 2rem;
+  }
+}
+
+@media (max-width: 720px) {
   .about-hero {
     grid-template-columns: 1fr;
     gap: 2.5rem;
   }
 
-  .about-hero-card {
-    width: 100%;
-    max-width: 28rem;
+  .profile-avatar {
+    width: 180px;
   }
 }
 
@@ -637,15 +714,11 @@ import ScrollCue from '@/components/ScrollCue.vue'
 
   .about-aside {
     position: static;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: 1fr;
   }
 }
 
 @media (max-width: 720px) {
-  .about-aside {
-    grid-template-columns: 1fr;
-  }
-
   .about-main {
     gap: 48px;
   }
@@ -661,9 +734,4 @@ import ScrollCue from '@/components/ScrollCue.vue'
   }
 }
 
-@media (max-width: 420px) {
-  .about-actions .button {
-    flex: 1;
-  }
-}
 </style>

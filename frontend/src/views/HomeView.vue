@@ -1182,8 +1182,26 @@ onBeforeUnmount(() => {
     top: 50%;
   }
 
+  .hero-terminal {
+    width: min(calc(100% - 2rem), 28rem);
+    margin-bottom: 2rem;
+    justify-self: center;
+  }
+
+  .terminal-bar {
+    height: 38px;
+    padding: 0 13px;
+  }
+
   .terminal-body {
-    font-size: var(--text-small);
+    gap: 1rem;
+    padding: 1.1rem 1rem;
+    font-size: var(--text-meta);
+    line-height: 1.65;
+  }
+
+  .terminal-footer {
+    padding: 0.5rem 0.85rem;
   }
 }
 
@@ -1197,9 +1215,8 @@ onBeforeUnmount(() => {
   }
 
   .terminal-body {
-    gap: 16px;
-    padding: 20px;
-    font-size: var(--text-small);
+    gap: 14px;
+    padding: 15px;
   }
 
   .terminal-output,

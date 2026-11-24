@@ -715,8 +715,33 @@ function isExternal(href: string): boolean {
     gap: 2.5rem;
   }
 
+  .profile-header {
+    flex-direction: column;
+    align-items: center;
+  }
+
   .profile-avatar {
     width: 180px;
+  }
+
+  .profile-copy {
+    width: 100%;
+    flex: 0 0 auto;
+  }
+
+  .about-terminal {
+    width: min(calc(100% - 2rem), 28rem);
+    margin-bottom: 2rem;
+    justify-self: center;
+  }
+
+  .identity-bar {
+    height: 34px;
+    padding: 0 12px;
+  }
+
+  .identity-body {
+    padding: 20px;
   }
 }
 

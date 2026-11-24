@@ -43,13 +43,15 @@ jobs:
         working-directory: frontend
         env:
           VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL || '/api' }}
-          VITE_USE_MOCK_DATA: ${{ vars.VITE_USE_MOCK_DATA || 'true' }}
+          VITE_USE_MOCK_DATA: ${{ vars.VITE_USE_MOCK_DATA || 'false' }}
         run: |
           yarn install --frozen-lockfile
           yarn build
 
       - name: Build backend
         working-directory: backend
+        env:
+          SQLX_OFFLINE: true
         run: cargo build --release --locked
 
       - name: Package artifacts

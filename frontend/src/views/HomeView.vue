@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import PostCard from '@/components/PostCard.vue'
+import ScrollCue from '@/components/ScrollCue.vue'
 import { fetchPosts } from '@/services/posts'
 import type { Post } from '@/types/blog'
 import { isTypingTarget } from '@/utils/dom'
@@ -52,7 +53,11 @@ function resetFilters() {
 }
 
 function scrollToPosts() {
-  document.getElementById('writing')?.scrollIntoView({ behavior: 'smooth' })
+  const behavior = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    ? 'auto'
+    : 'smooth'
+
+  document.getElementById('writing')?.scrollIntoView({ behavior })
 }
 
 function handleShortcut(event: KeyboardEvent) {
@@ -150,21 +155,32 @@ onBeforeUnmount(() => {
         </div>
 
         <div class="terminal-body">
-          <p class="terminal-line"><span class="prompt">❯</span> whoami</p>
-          <p class="terminal-output">sudo4 — backend engineer / writer</p>
-
-          <p class="terminal-line"><span class="prompt">❯</span> cat now.txt</p>
-          <p class="terminal-output">building a blog with Rust &amp; Vue</p>
-
-          <p class="terminal-line"><span class="prompt">❯</span> ls ./stack</p>
-          <div class="terminal-chips">
-            <span>rust</span>
-            <span>vue</span>
-            <span>linux</span>
-            <span>postgres</span>
+          <div class="terminal-block">
+            <p class="terminal-line"><span class="prompt">❯</span> whoami</p>
+            <p class="terminal-output">sudo4 — backend &amp; writer</p>
           </div>
 
-          <p class="terminal-line">
+          <div class="terminal-block">
+            <p class="terminal-line"><span class="prompt">❯</span> cat now.txt</p>
+            <p class="terminal-output">building this blog</p>
+          </div>
+
+          <div class="terminal-block">
+            <p class="terminal-line"><span class="prompt">❯</span> ls ./stack</p>
+            <div class="terminal-chips">
+              <span>rust</span>
+              <span>vue</span>
+              <span>linux</span>
+              <span>postgres</span>
+            </div>
+          </div>
+
+          <div class="terminal-block">
+            <p class="terminal-line"><span class="prompt">❯</span> cat status.txt</p>
+            <p class="terminal-output">open to build · online</p>
+          </div>
+
+          <p class="terminal-line terminal-line--caret">
             <span class="prompt">❯</span>
             <span class="terminal-caret" aria-hidden="true"></span>
           </p>
@@ -179,6 +195,8 @@ onBeforeUnmount(() => {
           </span>
         </div>
       </aside>
+
+      <ScrollCue target="writing" aria-label="滚动到文章列表" />
     </section>
 
     <section id="writing" class="writing container">
@@ -284,7 +302,7 @@ onBeforeUnmount(() => {
             :key="post.slug"
             :post="post"
             :index="index"
-            :featured="index === 0 && !hasFilters"
+            :featured="post.featured"
           />
         </div>
       </div>
@@ -341,16 +359,33 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
-.home {
-  padding-top: clamp(48px, 8vw, 92px);
+.hero {
+  --terminal-width: clamp(420px, 30vw, 460px);
+  --hero-gap: clamp(40px, 5.5vw, 96px);
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--terminal-width);
+  align-items: center;
+  gap: var(--hero-gap);
+  min-height: calc(100vh - var(--header-height));
+  min-height: calc(100svh - var(--header-height));
+  padding-top: clamp(2rem, 5vh, 4rem);
+  padding-bottom: clamp(4.5rem, 9vh, 7rem);
 }
 
-.hero {
-  display: grid;
-  grid-template-columns: minmax(0, 1.15fr) minmax(360px, 0.85fr);
-  align-items: center;
-  gap: clamp(40px, 7vw, 88px);
-  padding-bottom: clamp(64px, 9vw, 108px);
+.hero::before {
+  position: absolute;
+  z-index: -1;
+  top: 42%;
+  left: calc(100% - var(--terminal-width) - (var(--hero-gap) / 2));
+  width: clamp(520px, 65vw, 900px);
+  height: clamp(420px, 50vw, 720px);
+  background: var(--ambient-glow);
+  content: '';
+  filter: blur(18px);
+  pointer-events: none;
+  transform: translate(-50%, -50%);
 }
 
 .hero-copy {
@@ -361,14 +396,17 @@ onBeforeUnmount(() => {
   display: inline-flex;
   align-items: center;
   gap: 9px;
-  padding: 6px 10px;
+  padding: 7px 12px;
   border: 1px solid var(--border);
   border-radius: 999px;
-  color: var(--text-muted);
-  background: var(--surface);
+  color: var(--text-soft);
+  background:
+    linear-gradient(120deg, var(--accent-soft), transparent 58%),
+    var(--surface);
   font-family: var(--font-mono);
-  font-size: 0.65rem;
-  letter-spacing: 0.04em;
+  font-size: var(--text-label);
+  letter-spacing: 0.03em;
+  backdrop-filter: blur(12px);
 }
 
 .status-dot {
@@ -381,48 +419,58 @@ onBeforeUnmount(() => {
 
 .hero h1 {
   max-width: 9.2em;
-  margin-top: 24px;
-  font-size: clamp(2.5rem, 5.4vw, 4.35rem);
+  margin-top: 1.5rem;
+  font-size: clamp(2.8rem, 5.7vw, 5rem);
   font-weight: 650;
   letter-spacing: -0.055em;
-  line-height: 1.08;
+  line-height: 1.06;
 }
 
 .hero-accent {
-  color: var(--accent);
+  color: var(--gradient-accent-a);
+  background: linear-gradient(
+    100deg,
+    var(--gradient-accent-a) 0%,
+    var(--gradient-accent-b) 52%,
+    var(--gradient-accent-c) 100%
+  );
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 .hero-lead {
-  max-width: 52ch;
-  margin-top: 24px;
-  color: var(--text-muted);
-  font-size: clamp(0.95rem, 1.3vw, 1.05rem);
+  max-width: 48ch;
+  margin-top: 1.5rem;
+  color: var(--text-soft);
+  font-size: clamp(var(--text-lead), 1.4vw, 1.2rem);
   line-height: 1.85;
 }
 
 .hero-actions {
   display: flex;
-  margin-top: 32px;
+  margin-top: 2rem;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: 0.75rem;
 }
 
 .button {
   display: inline-flex;
-  min-height: 44px;
+  min-height: 3rem;
   align-items: center;
   justify-content: center;
-  gap: 9px;
-  padding: 10px 18px;
+  gap: 0.6rem;
+  padding: 0.72rem 1.25rem;
   border: 1px solid transparent;
   border-radius: var(--radius-sm);
   font-family: var(--font-mono);
-  font-size: 0.76rem;
+  font-size: var(--text-meta);
   letter-spacing: 0.01em;
   transition:
     color 0.2s ease,
     background-color 0.2s ease,
     border-color 0.2s ease,
+    box-shadow 0.2s ease,
     transform 0.2s ease;
 }
 
@@ -432,12 +480,12 @@ onBeforeUnmount(() => {
 
 .button--primary {
   color: var(--accent-contrast);
-  background: var(--accent);
-  box-shadow: 0 10px 24px var(--accent-glow);
+  background: linear-gradient(120deg, var(--accent), var(--accent-hover));
+  box-shadow: 0 12px 32px var(--accent-glow);
 }
 
 .button--primary:hover {
-  background: var(--accent-hover);
+  box-shadow: 0 16px 42px var(--accent-glow);
 }
 
 .button--ghost {
@@ -454,8 +502,8 @@ onBeforeUnmount(() => {
 
 .hero-stats {
   display: flex;
-  margin-top: 46px;
-  gap: clamp(28px, 5vw, 58px);
+  margin-top: 3rem;
+  gap: clamp(2rem, 5vw, 4rem);
 }
 
 .hero-stats div {
@@ -467,24 +515,26 @@ onBeforeUnmount(() => {
 .hero-stats dt {
   color: var(--text-muted);
   font-family: var(--font-mono);
-  font-size: 0.6rem;
-  letter-spacing: 0.1em;
+  font-size: var(--text-label);
+  letter-spacing: 0.08em;
 }
 
 .hero-stats dd {
   margin: 0;
   color: var(--text);
   font-family: var(--font-mono);
-  font-size: 1.15rem;
+  font-size: 1.35rem;
   font-weight: 500;
   letter-spacing: -0.02em;
 }
 
 .hero-terminal {
   overflow: hidden;
-  border: 1px solid var(--border-strong);
+  border: 1px solid transparent;
   border-radius: var(--radius-lg);
-  background: var(--surface-raised);
+  background:
+    linear-gradient(155deg, var(--surface-raised), var(--surface) 76%) padding-box,
+    linear-gradient(145deg, var(--accent-line), var(--border) 42%, var(--accent-soft)) border-box;
   box-shadow: var(--shadow-lg);
   animation: reveal-up 0.65s 0.12s ease both;
 }
@@ -517,33 +567,38 @@ onBeforeUnmount(() => {
 
 .terminal-title {
   margin-inline: auto;
-  color: var(--text-muted);
+  color: var(--text-soft);
   font-family: var(--font-mono);
-  font-size: 0.64rem;
+  font-size: var(--text-label);
 }
 
 .terminal-shell {
   color: var(--text-muted);
   font-family: var(--font-mono);
-  font-size: 0.58rem;
-  opacity: 0.7;
+  font-size: var(--text-label);
+  opacity: 0.8;
 }
 
 .terminal-body {
-  min-height: 280px;
-  padding: 24px;
+  display: grid;
+  gap: 1.1rem;
+  padding: 1.5rem;
   font-family: var(--font-mono);
-  font-size: 0.78rem;
-  line-height: 1.7;
+  font-size: var(--text-small);
+  line-height: 1.72;
+}
+
+.terminal-block {
+  min-width: 0;
 }
 
 .terminal-line {
-  margin-top: 10px;
+  margin: 0;
   color: var(--text);
 }
 
-.terminal-line:first-child {
-  margin-top: 0;
+.terminal-line--caret {
+  margin-top: 2px;
 }
 
 .prompt {
@@ -552,24 +607,25 @@ onBeforeUnmount(() => {
 }
 
 .terminal-output {
-  margin: 4px 0 14px 18px;
-  color: var(--text-muted);
+  margin: 4px 0 0 1.1rem;
+  overflow-wrap: anywhere;
+  color: var(--text-soft);
 }
 
 .terminal-chips {
   display: flex;
-  margin: 7px 0 14px 18px;
+  margin: 8px 0 0 1.1rem;
   flex-wrap: wrap;
   gap: 6px;
 }
 
 .terminal-chips span {
-  padding: 2px 8px;
+  padding: 3px 9px;
   border: 1px solid var(--border);
   border-radius: 4px;
   color: var(--accent);
   background: var(--accent-soft);
-  font-size: 0.68rem;
+  font-size: var(--text-label);
 }
 
 .terminal-caret {
@@ -585,13 +641,13 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 9px 16px;
+  padding: 0.6rem 1rem;
   border-top: 1px solid var(--border);
   color: var(--text-muted);
-  background: var(--surface-soft);
+  background: linear-gradient(180deg, transparent, var(--surface-soft));
   font-family: var(--font-mono);
-  font-size: 0.58rem;
-  letter-spacing: 0.04em;
+  font-size: var(--text-label);
+  letter-spacing: 0.03em;
 }
 
 .terminal-connected {
@@ -610,10 +666,11 @@ onBeforeUnmount(() => {
 
 .writing {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 292px;
+  grid-template-columns: minmax(0, 1fr) 21rem;
   align-items: start;
-  gap: clamp(32px, 5vw, 64px);
-  scroll-margin-top: calc(var(--header-height) + 28px);
+  gap: clamp(2rem, 5vw, 4.5rem);
+  padding-top: clamp(2rem, 4vw, 3.5rem);
+  scroll-margin-top: var(--header-height);
 }
 
 .section-head {
@@ -629,22 +686,23 @@ onBeforeUnmount(() => {
 .side-label {
   color: var(--accent);
   font-family: var(--font-mono);
-  font-size: 0.64rem;
-  letter-spacing: 0.08em;
+  font-size: var(--text-label);
+  font-weight: 500;
+  letter-spacing: 0.06em;
 }
 
 .section-head h2 {
-  margin-top: 8px;
-  font-size: clamp(1.65rem, 3vw, 2.05rem);
+  margin-top: 0.5rem;
+  font-size: clamp(1.9rem, 3.2vw, 2.5rem);
 }
 
 .search-box {
   display: flex;
-  width: min(245px, 100%);
-  height: 40px;
+  width: min(18rem, 100%);
+  height: 2.75rem;
   align-items: center;
   gap: 9px;
-  padding: 0 11px;
+  padding: 0 0.8rem;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   color: var(--text-muted);
@@ -667,7 +725,7 @@ onBeforeUnmount(() => {
   color: var(--text);
   background: transparent;
   font-family: var(--font-mono);
-  font-size: 0.72rem;
+  font-size: var(--text-meta);
 }
 
 .search-box input::placeholder {
@@ -688,7 +746,7 @@ onBeforeUnmount(() => {
   background: var(--surface-soft);
   color: var(--text-muted);
   font-family: var(--font-mono);
-  font-size: 0.62rem;
+  font-size: var(--text-label);
   line-height: 1;
 }
 
@@ -718,13 +776,14 @@ onBeforeUnmount(() => {
 }
 
 .tag-filter button {
-  padding: 4px 9px;
+  padding: 0.35rem 0.7rem;
   border: 1px solid transparent;
-  border-radius: 5px;
-  color: var(--text-muted);
+  border-radius: 6px;
+  color: var(--text-soft);
   background: var(--surface-soft);
   font-family: var(--font-mono);
-  font-size: 0.66rem;
+  font-size: var(--text-meta);
+  font-weight: 500;
   line-height: 1.6;
   transition:
     color 0.18s ease,
@@ -745,20 +804,20 @@ onBeforeUnmount(() => {
 
 .result-meta {
   display: flex;
-  min-height: 38px;
+  min-height: 2.5rem;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  color: var(--text-muted);
+  color: var(--text-soft);
   font-family: var(--font-mono);
-  font-size: 0.64rem;
+  font-size: var(--text-label);
 }
 
 .result-meta button {
-  color: var(--text-muted);
+  color: var(--text-soft);
   background: transparent;
   font-family: var(--font-mono);
-  font-size: 0.64rem;
+  font-size: var(--text-label);
   text-decoration: underline;
   text-underline-offset: 3px;
 }
@@ -821,18 +880,18 @@ onBeforeUnmount(() => {
 .empty-command {
   color: var(--accent);
   font-family: var(--font-mono);
-  font-size: 0.7rem;
+  font-size: var(--text-label);
 }
 
 .empty-state h3 {
   margin-top: 16px;
-  font-size: 1.2rem;
+  font-size: 1.35rem;
 }
 
 .empty-state p {
   margin-top: 8px;
-  color: var(--text-muted);
-  font-size: 0.88rem;
+  color: var(--text-soft);
+  font-size: var(--text-small);
 }
 
 .empty-state .button {
@@ -843,17 +902,19 @@ onBeforeUnmount(() => {
   position: sticky;
   top: calc(var(--header-height) + 28px);
   display: grid;
-  gap: 14px;
+  gap: 0.9rem;
 }
 
 .side-card {
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  padding: 20px;
+  gap: 0.9rem;
+  padding: 1.35rem;
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
-  background: var(--surface);
+  background:
+    radial-gradient(circle at 100% 0, var(--surface-glow), transparent 48%),
+    var(--surface);
 }
 
 .side-profile {
@@ -864,8 +925,8 @@ onBeforeUnmount(() => {
 
 .side-avatar {
   display: grid;
-  width: 42px;
-  height: 42px;
+  width: 2.75rem;
+  height: 2.75rem;
   flex: 0 0 auto;
   place-items: center;
   border: 1px solid var(--accent-line);
@@ -873,7 +934,7 @@ onBeforeUnmount(() => {
   color: var(--accent);
   background: var(--accent-soft);
   font-family: var(--font-mono);
-  font-size: 0.78rem;
+  font-size: var(--text-meta);
 }
 
 .side-profile div {
@@ -884,20 +945,20 @@ onBeforeUnmount(() => {
 
 .side-profile strong {
   font-family: var(--font-mono);
-  font-size: 0.85rem;
+  font-size: 1rem;
   font-weight: 600;
 }
 
 .side-profile span {
-  color: var(--text-muted);
+  color: var(--text-soft);
   font-family: var(--font-mono);
-  font-size: 0.62rem;
+  font-size: var(--text-label);
 }
 
 .side-card > p {
-  color: var(--text-muted);
-  font-size: 0.82rem;
-  line-height: 1.75;
+  color: var(--text-soft);
+  font-size: var(--text-small);
+  line-height: 1.8;
 }
 
 .text-link {
@@ -906,7 +967,7 @@ onBeforeUnmount(() => {
   gap: 6px;
   color: var(--accent);
   font-family: var(--font-mono);
-  font-size: 0.68rem;
+  font-size: var(--text-label);
 }
 
 .text-link:hover {
@@ -927,7 +988,7 @@ onBeforeUnmount(() => {
   padding-bottom: 9px;
   border-bottom: 1px solid var(--border);
   font-family: var(--font-mono);
-  font-size: 0.65rem;
+  font-size: var(--text-meta);
 }
 
 .now-list li:last-child {
@@ -967,7 +1028,9 @@ onBeforeUnmount(() => {
 
 .side-card--link:hover {
   border-color: var(--accent-line);
-  background: var(--accent-soft);
+  background:
+    linear-gradient(135deg, var(--accent-soft), transparent 72%),
+    var(--surface);
 }
 
 .side-link-title {
@@ -975,7 +1038,7 @@ onBeforeUnmount(() => {
   align-items: center;
   justify-content: space-between;
   color: var(--text);
-  font-size: 1.05rem;
+  font-size: 1.15rem;
   font-weight: 600;
   letter-spacing: -0.02em;
 }
@@ -985,9 +1048,9 @@ onBeforeUnmount(() => {
 }
 
 .side-link-meta {
-  color: var(--text-muted);
+  color: var(--text-soft);
   font-family: var(--font-mono);
-  font-size: 0.6rem;
+  font-size: var(--text-label);
 }
 
 @keyframes reveal-up {
@@ -1025,10 +1088,17 @@ onBeforeUnmount(() => {
   }
 }
 
+
+
 @media (max-width: 960px) {
   .hero {
+    gap: 42px;
     grid-template-columns: 1fr;
-    gap: 48px;
+  }
+
+  .hero::before {
+    top: 46%;
+    left: 50%;
   }
 
   .hero h1 {
@@ -1036,7 +1106,9 @@ onBeforeUnmount(() => {
   }
 
   .hero-terminal {
-    max-width: 600px;
+    width: 100%;
+    max-width: none;
+    justify-self: stretch;
   }
 
   .writing {
@@ -1049,11 +1121,21 @@ onBeforeUnmount(() => {
   }
 }
 
-@media (max-width: 720px) {
-  .home {
-    padding-top: 40px;
+@media (min-width: 800px) and (max-width: 960px) {
+  .terminal-body {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 36px;
+    row-gap: 20px;
+    padding: 26px;
   }
 
+  .terminal-line--caret {
+    grid-column: 1 / -1;
+    margin-top: 0;
+  }
+}
+
+@media (max-width: 720px) {
   .section-head {
     align-items: flex-start;
     flex-direction: column;
@@ -1068,11 +1150,15 @@ onBeforeUnmount(() => {
   }
 
   .hero-stats {
-    margin-top: 36px;
+    margin-top: 2.25rem;
+  }
+
+  .hero::before {
+    top: 50%;
   }
 
   .terminal-body {
-    min-height: 250px;
+    font-size: var(--text-small);
   }
 }
 
@@ -1086,11 +1172,18 @@ onBeforeUnmount(() => {
   }
 
   .terminal-body {
+    gap: 16px;
     padding: 20px;
+    font-size: var(--text-small);
+  }
+
+  .terminal-output,
+  .terminal-chips {
+    margin-left: 12px;
   }
 
   .terminal-footer {
-    font-size: 0.54rem;
+    font-size: var(--text-label);
   }
 }
 </style>

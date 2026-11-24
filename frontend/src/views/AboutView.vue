@@ -1,22 +1,66 @@
+<script setup lang="ts">
+import ScrollCue from '@/components/ScrollCue.vue'
+</script>
+
 <template>
-  <section class="about-page container">
+  <section class="about-page page-with-glow container">
     <header class="about-hero">
-      <div class="page-kicker">// ABOUT ME</div>
-      <h1>
-        保持好奇，<br />
-        <span>持续构建。</span>
-      </h1>
-      <p class="about-lead">
-        我是 sudo4，一名关注后端与基础设施的工程师。喜欢把复杂的系统拆开、理解，再用更简单的方式装回去。
-        这里记录过程，也记录偶尔冒出来的想法。
-      </p>
-      <div class="about-actions">
-        <a class="button button--primary" href="#/archive">浏览归档 <span aria-hidden="true">→</span></a>
-        <a class="button button--ghost" href="#/">回到首页 <span aria-hidden="true">↩</span></a>
+      <div class="about-hero-copy">
+        <div class="page-kicker">// ABOUT ME</div>
+        <h1>
+          保持好奇，<br />
+          <span>持续构建。</span>
+        </h1>
+        <p class="about-lead">
+          我是 sudo4，一名关注后端与基础设施的工程师。喜欢把复杂的系统拆开、理解，再用更简单的方式装回去。
+          这里记录过程，也记录偶尔冒出来的想法。
+        </p>
+        <div class="about-actions">
+          <a class="button button--primary" href="#/archive">浏览归档 <span aria-hidden="true">→</span></a>
+          <a class="button button--ghost" href="#/">回到首页 <span aria-hidden="true">↩</span></a>
+        </div>
       </div>
+
+      <div class="about-hero-card">
+        <div class="identity-card">
+          <div class="identity-bar">
+            <span class="terminal-dots" aria-hidden="true">
+              <i></i>
+              <i></i>
+              <i></i>
+            </span>
+            <span>identity.yml</span>
+          </div>
+          <div class="identity-body">
+            <span class="identity-avatar" aria-hidden="true">❯_</span>
+            <h2>sudo4</h2>
+            <p class="identity-role">backend engineer / writer</p>
+            <dl>
+              <div>
+                <dt>focus</dt>
+                <dd>backend &amp; infra</dd>
+              </div>
+              <div>
+                <dt>currently</dt>
+                <dd>building this blog</dd>
+              </div>
+              <div>
+                <dt>status</dt>
+                <dd class="identity-online"><i aria-hidden="true"></i> online</dd>
+              </div>
+              <div>
+                <dt>since</dt>
+                <dd>2026</dd>
+              </div>
+            </dl>
+          </div>
+        </div>
+      </div>
+
+      <ScrollCue target="about-content" aria-label="滚动到关于内容" />
     </header>
 
-    <div class="about-grid">
+    <div id="about-content" class="about-grid">
       <div class="about-main">
         <section class="about-section">
           <span class="section-number">01 / NOW</span>
@@ -114,40 +158,6 @@
       </div>
 
       <aside class="about-aside">
-        <div class="identity-card">
-          <div class="identity-bar">
-            <span class="terminal-dots" aria-hidden="true">
-              <i></i>
-              <i></i>
-              <i></i>
-            </span>
-            <span>identity.yml</span>
-          </div>
-          <div class="identity-body">
-            <span class="identity-avatar" aria-hidden="true">❯_</span>
-            <h2>sudo4</h2>
-            <p class="identity-role">backend engineer / writer</p>
-            <dl>
-              <div>
-                <dt>focus</dt>
-                <dd>backend &amp; infra</dd>
-              </div>
-              <div>
-                <dt>currently</dt>
-                <dd>building this blog</dd>
-              </div>
-              <div>
-                <dt>status</dt>
-                <dd class="identity-online"><i aria-hidden="true"></i> online</dd>
-              </div>
-              <div>
-                <dt>since</dt>
-                <dd>2026</dd>
-              </div>
-            </dl>
-          </div>
-        </div>
-
         <div class="quote-card">
           <span class="quote-label">// MOTTO</span>
           <p>“Make it work,<br />make it right,<br />make it fast.”</p>
@@ -165,64 +175,81 @@
 </template>
 
 <style scoped>
-.about-page {
-  padding-top: clamp(56px, 9vw, 96px);
+.about-hero {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) clamp(340px, 28vw, 420px);
+  align-items: center;
+  gap: clamp(2.5rem, 5vw, 5rem);
+  min-height: calc(100vh - var(--header-height));
+  min-height: calc(100svh - var(--header-height));
+  padding-top: clamp(2rem, 5vh, 4rem);
+  padding-bottom: clamp(4.5rem, 9vh, 7rem);
+  border-bottom: 1px solid var(--border);
 }
 
-.about-hero {
-  max-width: 760px;
-  padding-bottom: clamp(48px, 8vw, 78px);
-  border-bottom: 1px solid var(--border);
+.about-hero-card {
+  min-width: 0;
 }
 
 .page-kicker {
   color: var(--accent);
   font-family: var(--font-mono);
-  font-size: 0.66rem;
-  letter-spacing: 0.09em;
+  font-size: var(--text-label);
+  letter-spacing: 0.08em;
 }
 
 .about-hero h1 {
-  margin-top: 16px;
-  font-size: clamp(2.7rem, 6.8vw, 4.7rem);
-  letter-spacing: -0.065em;
-  line-height: 1.08;
+  margin-top: 1rem;
+  font-size: clamp(2.8rem, 5.7vw, 5rem);
+  letter-spacing: -0.06em;
+  line-height: 1.06;
 }
 
 .about-hero h1 span {
-  color: var(--accent);
+  color: var(--gradient-accent-a);
+  background: linear-gradient(
+    100deg,
+    var(--gradient-accent-a) 0%,
+    var(--gradient-accent-b) 52%,
+    var(--gradient-accent-c) 100%
+  );
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 .about-lead {
-  max-width: 59ch;
-  margin-top: 24px;
-  color: var(--text-muted);
-  font-size: clamp(0.96rem, 1.5vw, 1.06rem);
+  max-width: 50ch;
+  margin-top: 1.5rem;
+  color: var(--text-soft);
+  font-size: clamp(var(--text-lead), 1.4vw, 1.2rem);
   line-height: 1.9;
 }
 
 .about-actions {
   display: flex;
-  margin-top: 30px;
+  margin-top: 2rem;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: 0.75rem;
 }
 
 .button {
   display: inline-flex;
-  min-height: 42px;
+  min-height: 3rem;
   align-items: center;
   justify-content: center;
-  gap: 9px;
-  padding: 9px 17px;
+  gap: 0.6rem;
+  padding: 0.72rem 1.25rem;
   border: 1px solid transparent;
   border-radius: var(--radius-sm);
   font-family: var(--font-mono);
-  font-size: 0.73rem;
+  font-size: var(--text-meta);
   transition:
     color 0.2s ease,
     background-color 0.2s ease,
     border-color 0.2s ease,
+    box-shadow 0.2s ease,
     transform 0.2s ease;
 }
 
@@ -232,11 +259,12 @@
 
 .button--primary {
   color: var(--accent-contrast);
-  background: var(--accent);
+  background: linear-gradient(120deg, var(--accent), var(--accent-hover));
+  box-shadow: 0 12px 32px var(--accent-glow);
 }
 
 .button--primary:hover {
-  background: var(--accent-hover);
+  box-shadow: 0 16px 42px var(--accent-glow);
 }
 
 .button--ghost {
@@ -253,10 +281,11 @@
 
 .about-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 310px;
+  grid-template-columns: minmax(0, 1fr) 21rem;
   align-items: start;
-  gap: clamp(40px, 8vw, 96px);
-  padding-top: clamp(48px, 8vw, 76px);
+  gap: clamp(2rem, 5vw, 4.5rem);
+  padding-top: clamp(2rem, 4vw, 3.5rem);
+  scroll-margin-top: var(--header-height);
 }
 
 .about-main {
@@ -273,15 +302,15 @@
   max-width: 62ch;
   margin-top: 17px;
   color: var(--text-muted);
-  font-size: 0.95rem;
+  font-size: var(--text-small);
   line-height: 1.88;
 }
 
 .section-number {
   color: var(--text-muted);
   font-family: var(--font-mono);
-  font-size: 0.62rem;
-  letter-spacing: 0.08em;
+  font-size: var(--text-label);
+  letter-spacing: 0.07em;
 }
 
 .now-list {
@@ -298,14 +327,14 @@
   padding: 14px 0;
   border-bottom: 1px solid var(--border);
   color: var(--text-soft);
-  font-size: 0.88rem;
+  font-size: var(--text-small);
 }
 
 .now-key {
   color: var(--accent);
   font-family: var(--font-mono);
-  font-size: 0.63rem;
-  letter-spacing: 0.05em;
+  font-size: var(--text-label);
+  letter-spacing: 0.04em;
 }
 
 .principle-list {
@@ -325,7 +354,7 @@
 .principle-index {
   color: var(--accent);
   font-family: var(--font-mono);
-  font-size: 0.68rem;
+  font-size: var(--text-label);
   line-height: 1.9;
 }
 
@@ -338,7 +367,7 @@
 .principle-list p {
   margin-top: 7px;
   color: var(--text-muted);
-  font-size: 0.86rem;
+  font-size: var(--text-small);
 }
 
 .stack-groups {
@@ -358,8 +387,8 @@
   padding-top: 4px;
   color: var(--text-muted);
   font-family: var(--font-mono);
-  font-size: 0.61rem;
-  letter-spacing: 0.06em;
+  font-size: var(--text-label);
+  letter-spacing: 0.05em;
 }
 
 .stack-tags {
@@ -375,7 +404,7 @@
   color: var(--text-soft);
   background: var(--surface);
   font-family: var(--font-mono);
-  font-size: 0.66rem;
+  font-size: var(--text-label);
 }
 
 .about-section blockquote {
@@ -387,7 +416,7 @@
   color: var(--text);
   background: var(--accent-soft);
   font-family: var(--font-mono);
-  font-size: 0.8rem;
+  font-size: var(--text-small);
 }
 
 .about-aside {
@@ -401,7 +430,10 @@
   overflow: hidden;
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
-  background: var(--surface);
+  background:
+    radial-gradient(circle at 100% 0, var(--surface-glow), transparent 48%),
+    var(--surface);
+  box-shadow: var(--shadow-lg);
 }
 
 .identity-bar {
@@ -414,7 +446,7 @@
   color: var(--text-muted);
   background: var(--surface-soft);
   font-family: var(--font-mono);
-  font-size: 0.58rem;
+  font-size: var(--text-label);
 }
 
 .terminal-dots {
@@ -448,7 +480,7 @@
   color: var(--accent);
   background: var(--accent-soft);
   font-family: var(--font-mono);
-  font-size: 0.8rem;
+  font-size: var(--text-small);
 }
 
 .identity-body h2 {
@@ -462,7 +494,7 @@
   margin-top: 3px;
   color: var(--text-muted);
   font-family: var(--font-mono);
-  font-size: 0.62rem;
+  font-size: var(--text-label);
 }
 
 .identity-body dl {
@@ -479,7 +511,7 @@
   padding-bottom: 9px;
   border-bottom: 1px solid var(--border);
   font-family: var(--font-mono);
-  font-size: 0.62rem;
+  font-size: var(--text-label);
 }
 
 .identity-body dl div:last-child {
@@ -521,7 +553,7 @@
 .quote-label {
   color: var(--accent);
   font-family: var(--font-mono);
-  font-size: 0.6rem;
+  font-size: var(--text-label);
   letter-spacing: 0.08em;
 }
 
@@ -529,7 +561,7 @@
   margin-top: 12px;
   color: var(--text-soft);
   font-family: var(--font-mono);
-  font-size: 0.82rem;
+  font-size: var(--text-small);
   line-height: 1.75;
 }
 
@@ -538,7 +570,7 @@
   margin-top: 12px;
   color: var(--text-muted);
   font-family: var(--font-mono);
-  font-size: 0.58rem;
+  font-size: var(--text-label);
 }
 
 .terminal-card {
@@ -547,7 +579,7 @@
   border-radius: var(--radius-md);
   background: var(--surface-raised);
   font-family: var(--font-mono);
-  font-size: 0.68rem;
+  font-size: var(--text-label);
   line-height: 1.75;
 }
 
@@ -586,6 +618,18 @@
   }
 }
 
+@media (max-width: 960px) {
+  .about-hero {
+    grid-template-columns: 1fr;
+    gap: 2.5rem;
+  }
+
+  .about-hero-card {
+    width: 100%;
+    max-width: 28rem;
+  }
+}
+
 @media (max-width: 900px) {
   .about-grid {
     grid-template-columns: 1fr;
@@ -593,15 +637,11 @@
 
   .about-aside {
     position: static;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
 @media (max-width: 720px) {
-  .about-page {
-    padding-top: 40px;
-  }
-
   .about-aside {
     grid-template-columns: 1fr;
   }

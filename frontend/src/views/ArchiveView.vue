@@ -2,7 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { fetchPosts } from '@/services/posts'
 import type { Post } from '@/types/blog'
-import { formatDate, getYear } from '@/utils/format'
+import { formatMonthDay, getYear } from '@/utils/format'
 
 const posts = ref<Post[]>([])
 const loading = ref(true)
@@ -83,10 +83,8 @@ onMounted(loadPosts)
             class="archive-row"
             :href="`#/posts/${post.slug}`"
           >
-            <time :datetime="post.publishedAt">{{ formatDate(post.publishedAt) }}</time>
+            <time :datetime="post.publishedAt">{{ formatMonthDay(post.publishedAt) }}</time>
             <span class="archive-title">{{ post.title }}</span>
-            <span class="archive-tags">{{ post.tags.map((tag) => `#${tag}`).join(' ') }}</span>
-            <span class="archive-arrow" aria-hidden="true">↗</span>
           </a>
         </div>
       </section>
@@ -101,6 +99,7 @@ onMounted(loadPosts)
 
 <style scoped>
 .archive-page {
+  width: min(920px, calc(100% - 96px));
   padding-top: clamp(1.75rem, 3.5vw, 3rem);
 }
 
@@ -159,8 +158,8 @@ onMounted(loadPosts)
 
 .archive-groups {
   display: grid;
-  gap: clamp(42px, 6vw, 60px);
-  padding-top: clamp(36px, 6vw, 54px);
+  gap: clamp(56px, 7vw, 72px);
+  padding-top: clamp(40px, 6vw, 56px);
 }
 
 .year-heading {
@@ -190,23 +189,22 @@ onMounted(loadPosts)
 }
 
 .archive-list {
-  margin-top: 14px;
+  display: grid;
+  margin-top: 10px;
+  gap: 2px;
 }
 
 .archive-row {
   display: grid;
-  grid-template-columns: 94px minmax(0, 1fr) minmax(140px, 210px) 20px;
+  grid-template-columns: 56px minmax(0, 1fr);
   align-items: center;
   gap: 18px;
-  padding: 17px 10px;
-  border-bottom: 1px solid var(--border);
-  transition:
-    background-color 0.2s ease,
-    padding-left 0.2s ease;
+  padding: 9px 8px;
+  border-radius: 6px;
+  transition: background-color 0.2s ease;
 }
 
 .archive-row:hover {
-  padding-left: 16px;
   background: var(--accent-soft);
 }
 
@@ -230,32 +228,6 @@ onMounted(loadPosts)
   color: var(--accent);
 }
 
-.archive-tags {
-  overflow: hidden;
-  color: var(--text-muted);
-  font-family: var(--font-mono);
-  font-size: var(--text-label);
-  text-align: right;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.archive-arrow {
-  color: var(--text-muted);
-  font-family: var(--font-mono);
-  font-size: var(--text-label);
-  text-align: right;
-  opacity: 0;
-  transition:
-    opacity 0.2s ease,
-    color 0.2s ease;
-}
-
-.archive-row:hover .archive-arrow {
-  color: var(--accent);
-  opacity: 1;
-}
-
 .archive-loading {
   display: grid;
   padding-top: 36px;
@@ -263,10 +235,9 @@ onMounted(loadPosts)
 
 .archive-skeleton {
   display: grid;
-  grid-template-columns: 90px 1fr;
-  gap: 20px;
-  padding: 20px 10px;
-  border-bottom: 1px solid var(--border);
+  grid-template-columns: 56px 1fr;
+  gap: 18px;
+  padding: 9px 8px;
 }
 
 .archive-skeleton span {
@@ -336,36 +307,18 @@ onMounted(loadPosts)
 }
 
 @media (max-width: 720px) {
+  .archive-page {
+    width: calc(100% - 48px);
+  }
+
   .archive-row {
-    grid-template-columns: 78px minmax(0, 1fr) 16px;
+    grid-template-columns: 48px minmax(0, 1fr);
     gap: 12px;
     padding-inline: 6px;
   }
 
-  .archive-row:hover {
-    padding-left: 10px;
-  }
-
-  .archive-tags {
-    display: none;
-  }
-
   .archive-title {
     font-size: var(--text-small);
-  }
-
-  .archive-arrow {
-    opacity: 0.45;
-  }
-}
-
-@media (max-width: 460px) {
-  .archive-row {
-    grid-template-columns: 70px minmax(0, 1fr);
-  }
-
-  .archive-arrow {
-    display: none;
   }
 }
 </style>

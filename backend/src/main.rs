@@ -1,18 +1,25 @@
-mod config;
+use std::{net::SocketAddr, sync::Arc};
 
-use axum::{Json, Router, routing::get};
-use serde_json::{Value, json};
-use std::net::SocketAddr;
-
-use config::CONFIG;
-
-async fn messages() -> Json<Value> {
-    Json(json!({"messages": "sucess!"}))
-}
+use sudo4_api::{
+    api,
+    config::CONFIG,
+    infrastructure::sqlite::{SqliteUnitOfWorkFactory, connect},
+    service::post::PostService,
+};
 
 #[tokio::main]
 async fn main() {
-    let app = Router::new().route("/", get(messages));
+    let pool = connect(&CONFIG.database_url, &CONFIG.base_dir)
+        .await
+        .expect("Failed to connect to SQLite");
+
+    sqlx::migrate!()
+        .run(&pool)
+        .await
+        .expect("Failed to run database migrations");
+
+    let service = PostService::new(Arc::new(SqliteUnitOfWorkFactory::new(pool)));
+    let app = api::router(service);
     let address = format!("{}:{}", CONFIG.backend_host, CONFIG.backend_port);
     let address: SocketAddr = address.parse().expect("Invalid BACKEND_HOST/BACKEND_PORT");
 

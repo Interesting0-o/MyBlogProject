@@ -11,6 +11,8 @@ cd backend && cargo run
 
 前后端共用根目录 `.env`，配置模板为 `.env.example`。`VITE_` 前缀变量会注入前端构建，其余变量仅后端读取。
 
+后端默认使用 SQLite，数据库位于 `resource/sudo4.db`，首次启动会自动创建目录并执行迁移。
+
 ## 写文章
 
 文章放在 `frontend/src/content/posts/`，使用 Markdown 和 Frontmatter，文件名会自动作为文章 URL 的 slug：

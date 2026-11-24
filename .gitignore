@@ -7,6 +7,9 @@ target
 node_modules
 .env
 
+# Local SQLite database
+resource/*.db*
+
 # Downloaded release artifacts
 .artifacts/
 

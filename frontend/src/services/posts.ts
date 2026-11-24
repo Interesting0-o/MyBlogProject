@@ -1,6 +1,6 @@
 import { mockPosts } from '@/data/posts'
 import type { Post } from '@/types/blog'
-import { sanitizeHtml } from '@/utils/markdown'
+import { renderMarkdown } from '@/utils/markdown'
 
 const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL || '/api').replace(/\/+$/, '')
 const useMockData = import.meta.env.VITE_USE_MOCK_DATA !== 'false'
@@ -15,16 +15,16 @@ function clonePost(post: Post): Post {
   }
 }
 
-function sanitizePostContent(post: Post): Post {
+function renderRemotePostContent(post: Post): Post {
   return {
     ...clonePost(post),
-    content: sanitizeHtml(post.content),
+    content: renderMarkdown(post.content),
   }
 }
 
-function normalizePosts(posts: Post[], sanitizeContent = false): Post[] {
+function normalizePosts(posts: Post[], renderContent = false): Post[] {
   return posts
-    .map((post) => (sanitizeContent ? sanitizePostContent(post) : clonePost(post)))
+    .map((post) => (renderContent ? renderRemotePostContent(post) : clonePost(post)))
     .sort((a, b) => b.publishedAt.localeCompare(a.publishedAt))
 }
 

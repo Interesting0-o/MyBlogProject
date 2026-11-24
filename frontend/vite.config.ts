@@ -15,7 +15,6 @@ export default defineConfig(({ mode }) => {
     '/api': {
       target: `http://${backendHost}:${backendPort}`,
       changeOrigin: true,
-      rewrite: (path: string) => path.replace(/^\/api/, ''),
     },
   }
 

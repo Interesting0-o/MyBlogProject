@@ -24,7 +24,7 @@ impl From<ServiceError> for ApiError {
             ServiceError::Conflict(message) => Self::Conflict(message),
             ServiceError::Repository(RepositoryError::Conflict(message)) => Self::Conflict(message),
             ServiceError::Repository(error) => {
-                eprintln!("repository error: {error}");
+                tracing::error!(error = %error, "repository request failed");
                 Self::Internal
             }
         }

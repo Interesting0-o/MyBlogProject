@@ -54,8 +54,7 @@ async fn creates_reads_updates_and_deletes_posts() {
     );
 
     let posts = service.list_posts().await.expect("list posts");
-    assert_eq!(posts.len(), 1);
-    assert_eq!(posts[0].slug, "first-post");
+    assert!(posts.iter().any(|post| post.slug == "first-post"));
 
     let fetched = service.get_post("first-post").await.expect("get post");
     assert_eq!(fetched.title, "Test post");

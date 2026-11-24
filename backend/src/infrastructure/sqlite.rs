@@ -84,7 +84,8 @@ struct SqlitePostRepository<'a> {
 #[async_trait]
 impl PostRepository for SqlitePostRepository<'_> {
     async fn list(&mut self) -> Result<Vec<Post>, RepositoryError> {
-        let rows = sqlx::query_as::<_, PostRow>(
+        let rows = sqlx::query_as!(
+            PostRow,
             "SELECT slug, title, description, published_at, updated_at, tags, \
              reading_minutes, featured, content FROM posts \
              ORDER BY published_at DESC, slug ASC",
@@ -97,11 +98,12 @@ impl PostRepository for SqlitePostRepository<'_> {
     }
 
     async fn find_by_slug(&mut self, slug: &str) -> Result<Option<Post>, RepositoryError> {
-        let row = sqlx::query_as::<_, PostRow>(
+        let row = sqlx::query_as!(
+            PostRow,
             "SELECT slug, title, description, published_at, updated_at, tags, \
              reading_minutes, featured, content FROM posts WHERE slug = ? LIMIT 1",
+            slug,
         )
-        .bind(slug)
         .fetch_optional(&mut **self.transaction)
         .await
         .map_err(map_sqlx_error)?;
@@ -112,20 +114,20 @@ impl PostRepository for SqlitePostRepository<'_> {
     async fn insert(&mut self, post: &Post) -> Result<(), RepositoryError> {
         let tags = encode_tags(&post.tags)?;
 
-        sqlx::query(
+        sqlx::query!(
             "INSERT INTO posts \
              (slug, title, description, published_at, updated_at, tags, reading_minutes, featured, content) \
              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            &post.slug,
+            &post.title,
+            &post.description,
+            &post.published_at,
+            post.updated_at.as_deref(),
+            tags,
+            i64::from(post.reading_minutes),
+            i64::from(post.featured),
+            &post.content,
         )
-        .bind(&post.slug)
-        .bind(&post.title)
-        .bind(&post.description)
-        .bind(&post.published_at)
-        .bind(post.updated_at.as_deref())
-        .bind(tags)
-        .bind(i64::from(post.reading_minutes))
-        .bind(i64::from(post.featured))
-        .bind(&post.content)
         .execute(&mut **self.transaction)
         .await
         .map_err(map_sqlx_error)?;
@@ -136,19 +138,19 @@ impl PostRepository for SqlitePostRepository<'_> {
     async fn update(&mut self, post: &Post) -> Result<bool, RepositoryError> {
         let tags = encode_tags(&post.tags)?;
 
-        let result = sqlx::query(
+        let result = sqlx::query!(
             "UPDATE posts SET title = ?, description = ?, published_at = ?, updated_at = ?, \
              tags = ?, reading_minutes = ?, featured = ?, content = ? WHERE slug = ?",
+            &post.title,
+            &post.description,
+            &post.published_at,
+            post.updated_at.as_deref(),
+            tags,
+            i64::from(post.reading_minutes),
+            i64::from(post.featured),
+            &post.content,
+            &post.slug,
         )
-        .bind(&post.title)
-        .bind(&post.description)
-        .bind(&post.published_at)
-        .bind(post.updated_at.as_deref())
-        .bind(tags)
-        .bind(i64::from(post.reading_minutes))
-        .bind(i64::from(post.featured))
-        .bind(&post.content)
-        .bind(&post.slug)
         .execute(&mut **self.transaction)
         .await
         .map_err(map_sqlx_error)?;
@@ -157,8 +159,7 @@ impl PostRepository for SqlitePostRepository<'_> {
     }
 
     async fn delete(&mut self, slug: &str) -> Result<bool, RepositoryError> {
-        let result = sqlx::query("DELETE FROM posts WHERE slug = ?")
-            .bind(slug)
+        let result = sqlx::query!("DELETE FROM posts WHERE slug = ?", slug)
             .execute(&mut **self.transaction)
             .await
             .map_err(map_sqlx_error)?;

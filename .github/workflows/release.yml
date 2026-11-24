@@ -60,7 +60,7 @@ jobs:
           strip "backend/target/release/sudo4-api"
           install -m 0755 "backend/target/release/sudo4-api" "release/${package_name}/sudo4-api"
           cp -R "frontend/dist" "release/${package_name}/dist"
-          cp "backend/.env.example" "release/${package_name}/.env.example"
+          cp ".env.example" "release/${package_name}/.env.example"
           tar -C release -czf "release/${package_name}.tar.gz" "${package_name}"
           (cd release && sha256sum "${package_name}.tar.gz" > SHA256SUMS)
 

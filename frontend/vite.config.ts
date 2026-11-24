@@ -20,6 +20,7 @@ export default defineConfig(({ mode }) => {
   }
 
   return {
+    envDir: projectRoot,
     plugins: [
       vue(),
       vueDevTools(),

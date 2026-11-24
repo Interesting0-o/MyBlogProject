@@ -1,5 +1,5 @@
 use dotenv::dotenv;
-use std::{env, sync::LazyLock};
+use std::{env, path::Path, sync::LazyLock};
 
 pub struct Config {
     pub backend_host: String,
@@ -12,7 +12,7 @@ pub struct Config {
 
 pub static CONFIG: LazyLock<Config> = LazyLock::new(|| {
     dotenv().ok();
-    dotenv::from_filename("../.env").ok();
+    dotenv::from_path(Path::new(env!("CARGO_MANIFEST_DIR")).join("../.env")).ok();
 
     Config {
         backend_host: env::var("BACKEND_HOST").unwrap_or_else(|_| "127.0.0.1".to_string()),

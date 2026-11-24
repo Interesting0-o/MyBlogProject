@@ -51,7 +51,7 @@
   color: var(--text-muted);
   background: var(--surface-soft);
   font-family: var(--font-mono);
-  font-size: 0.6rem;
+  font-size: var(--text-label);
 }
 
 .terminal-dots {
@@ -77,7 +77,7 @@
 .error-code {
   color: var(--accent);
   font-family: var(--font-mono);
-  font-size: 0.68rem;
+  font-size: var(--text-label);
   letter-spacing: 0.16em;
 }
 
@@ -85,7 +85,7 @@
   margin-top: 24px;
   color: var(--text-muted);
   font-family: var(--font-mono);
-  font-size: 0.75rem;
+  font-size: var(--text-meta);
 }
 
 .error-command span {
@@ -103,7 +103,7 @@
   max-width: 42ch;
   margin-top: 14px;
   color: var(--text-muted);
-  font-size: 0.9rem;
+  font-size: var(--text-small);
 }
 
 .not-found-link {
@@ -115,7 +115,7 @@
   color: var(--accent);
   background: var(--accent-soft);
   font-family: var(--font-mono);
-  font-size: 0.7rem;
+  font-size: var(--text-meta);
 }
 
 .not-found-link:hover {

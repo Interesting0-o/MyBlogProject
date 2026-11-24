@@ -42,7 +42,7 @@ onMounted(loadPosts)
 </script>
 
 <template>
-  <section class="archive-page container">
+  <section class="archive-page page-with-glow container">
     <header class="page-header">
       <div class="page-kicker">// ARCHIVE</div>
       <h1>全部归档<span class="accent">.</span></h1>
@@ -101,7 +101,7 @@ onMounted(loadPosts)
 
 <style scoped>
 .archive-page {
-  padding-top: clamp(56px, 9vw, 96px);
+  padding-top: clamp(1.75rem, 3.5vw, 3rem);
 }
 
 .page-header {
@@ -112,8 +112,8 @@ onMounted(loadPosts)
 .page-kicker {
   color: var(--accent);
   font-family: var(--font-mono);
-  font-size: 0.66rem;
-  letter-spacing: 0.09em;
+  font-size: var(--text-label);
+  letter-spacing: 0.08em;
 }
 
 .page-header h1 {
@@ -130,7 +130,7 @@ onMounted(loadPosts)
   max-width: 52ch;
   margin-top: 18px;
   color: var(--text-muted);
-  font-size: 0.96rem;
+  font-size: var(--text-body);
 }
 
 .archive-command {
@@ -144,7 +144,7 @@ onMounted(loadPosts)
   color: var(--text-muted);
   background: var(--surface);
   font-family: var(--font-mono);
-  font-size: 0.68rem;
+  font-size: var(--text-label);
 }
 
 .command-prompt {
@@ -180,7 +180,7 @@ onMounted(loadPosts)
 .year-heading > span:not(.year-line) {
   color: var(--text-muted);
   font-family: var(--font-mono);
-  font-size: 0.6rem;
+  font-size: var(--text-label);
 }
 
 .year-line {
@@ -213,13 +213,13 @@ onMounted(loadPosts)
 .archive-row time {
   color: var(--text-muted);
   font-family: var(--font-mono);
-  font-size: 0.68rem;
+  font-size: var(--text-label);
 }
 
 .archive-title {
   overflow: hidden;
   color: var(--text-soft);
-  font-size: 0.94rem;
+  font-size: var(--text-body);
   font-weight: 500;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -234,7 +234,7 @@ onMounted(loadPosts)
   overflow: hidden;
   color: var(--text-muted);
   font-family: var(--font-mono);
-  font-size: 0.61rem;
+  font-size: var(--text-label);
   text-align: right;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -243,7 +243,7 @@ onMounted(loadPosts)
 .archive-arrow {
   color: var(--text-muted);
   font-family: var(--font-mono);
-  font-size: 0.75rem;
+  font-size: var(--text-label);
   text-align: right;
   opacity: 0;
   transition:
@@ -292,7 +292,7 @@ onMounted(loadPosts)
 .empty-command {
   color: var(--accent);
   font-family: var(--font-mono);
-  font-size: 0.7rem;
+  font-size: var(--text-label);
 }
 
 .archive-empty p {
@@ -307,7 +307,7 @@ onMounted(loadPosts)
   color: var(--accent);
   background: var(--accent-soft);
   font-family: var(--font-mono);
-  font-size: 0.68rem;
+  font-size: var(--text-label);
 }
 
 .archive-back {
@@ -317,7 +317,7 @@ onMounted(loadPosts)
   gap: 8px;
   color: var(--text-muted);
   font-family: var(--font-mono);
-  font-size: 0.68rem;
+  font-size: var(--text-label);
 }
 
 .archive-back:hover {
@@ -351,7 +351,7 @@ onMounted(loadPosts)
   }
 
   .archive-title {
-    font-size: 0.88rem;
+    font-size: var(--text-small);
   }
 
   .archive-arrow {

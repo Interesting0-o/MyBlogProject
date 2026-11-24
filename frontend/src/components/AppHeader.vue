@@ -111,7 +111,7 @@ const activeRoute = computed(() => {
   gap: 7px;
   color: var(--text);
   font-family: var(--font-mono);
-  font-size: 1.02rem;
+  font-size: 1.15rem;
   font-weight: 600;
   letter-spacing: -0.03em;
   white-space: nowrap;
@@ -139,11 +139,12 @@ const activeRoute = computed(() => {
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  padding: 8px 12px;
+  padding: 0.55rem 0.8rem;
   border-radius: var(--radius-sm);
-  color: var(--text-muted);
+  color: var(--text-soft);
   font-family: var(--font-mono);
-  font-size: 0.76rem;
+  font-size: var(--text-meta);
+  font-weight: 500;
   letter-spacing: 0.02em;
   transition:
     color 0.2s ease,
@@ -152,17 +153,17 @@ const activeRoute = computed(() => {
 
 .site-nav a:hover {
   color: var(--text);
-  background: var(--accent-soft);
+  background: linear-gradient(135deg, var(--accent-soft), transparent);
 }
 
 .site-nav a.active {
   color: var(--accent);
-  background: var(--accent-soft);
+  background: linear-gradient(135deg, var(--accent-soft), transparent 80%);
 }
 
 .nav-index {
   color: var(--text-muted);
-  font-size: 0.65rem;
+  font-size: var(--text-label);
   opacity: 0.55;
 }
 
@@ -181,10 +182,10 @@ const activeRoute = computed(() => {
   display: none;
   align-items: center;
   gap: 7px;
-  color: var(--text-muted);
+  color: var(--text-soft);
   font-family: var(--font-mono);
-  font-size: 0.66rem;
-  letter-spacing: 0.06em;
+  font-size: var(--text-label);
+  letter-spacing: 0.05em;
 }
 
 .status-dot {
@@ -197,8 +198,8 @@ const activeRoute = computed(() => {
 
 .theme-toggle {
   display: grid;
-  width: 38px;
-  height: 38px;
+  width: 2.5rem;
+  height: 2.5rem;
   place-items: center;
   border: 1px solid var(--border);
   border-radius: 10px;
@@ -247,7 +248,7 @@ const activeRoute = computed(() => {
 
   .site-nav a {
     gap: 5px;
-    padding: 8px 9px;
+    padding: 0.45rem 0.55rem;
   }
 
   .nav-index {
@@ -259,19 +260,19 @@ const activeRoute = computed(() => {
   }
 
   .theme-toggle {
-    width: 36px;
-    height: 36px;
+    width: 2.35rem;
+    height: 2.35rem;
   }
 }
 
 @media (max-width: 380px) {
   .brand {
-    font-size: 0.95rem;
+    font-size: 1rem;
   }
 
   .site-nav a {
-    padding-inline: 7px;
-    font-size: 0.72rem;
+    padding-inline: 0.45rem;
+    font-size: var(--text-label);
   }
 }
 </style>

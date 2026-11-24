@@ -28,20 +28,20 @@ const year = new Date().getFullYear()
 
 <style scoped>
 .site-footer {
-  margin-top: 88px;
+  margin-top: clamp(4.5rem, 8vw, 7rem);
   border-top: 1px solid var(--border);
 }
 
 .footer-inner {
   display: flex;
-  min-height: 88px;
+  min-height: 5.5rem;
   align-items: center;
   justify-content: space-between;
   gap: 24px;
-  padding-block: 22px;
-  color: var(--text-muted);
+  padding-block: 1.4rem;
+  color: var(--text-soft);
   font-family: var(--font-mono);
-  font-size: 0.68rem;
+  font-size: var(--text-label);
   letter-spacing: 0.02em;
 }
 
@@ -99,7 +99,7 @@ kbd {
   background: var(--surface);
   color: var(--text-soft);
   font-family: var(--font-mono);
-  font-size: 0.62rem;
+  font-size: var(--text-label);
   line-height: 1;
 }
 

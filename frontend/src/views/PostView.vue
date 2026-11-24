@@ -264,7 +264,7 @@ onBeforeUnmount(() => {
   margin-bottom: clamp(36px, 6vw, 64px);
   color: var(--text-muted);
   font-family: var(--font-mono);
-  font-size: 0.68rem;
+  font-size: var(--text-label);
   transition: color 0.2s ease;
 }
 
@@ -286,8 +286,8 @@ onBeforeUnmount(() => {
   gap: 9px;
   color: var(--accent);
   font-family: var(--font-mono);
-  font-size: 0.63rem;
-  letter-spacing: 0.08em;
+  font-size: var(--text-label);
+  letter-spacing: 0.07em;
 }
 
 .kicker-sep {
@@ -297,8 +297,8 @@ onBeforeUnmount(() => {
 .post-lead {
   max-width: 60ch;
   margin-top: 22px;
-  color: var(--text-muted);
-  font-size: clamp(1rem, 1.6vw, 1.1rem);
+  color: var(--text-soft);
+  font-size: clamp(var(--text-lead), 1.5vw, 1.25rem);
   line-height: 1.85;
 }
 
@@ -320,7 +320,7 @@ onBeforeUnmount(() => {
   gap: 9px;
   color: var(--text-muted);
   font-family: var(--font-mono);
-  font-size: 0.67rem;
+  font-size: var(--text-label);
 }
 
 .meta-prompt {
@@ -343,7 +343,7 @@ onBeforeUnmount(() => {
   color: var(--text-muted);
   background: var(--surface);
   font-family: var(--font-mono);
-  font-size: 0.62rem;
+  font-size: var(--text-label);
   white-space: nowrap;
   transition:
     color 0.2s ease,
@@ -371,7 +371,7 @@ onBeforeUnmount(() => {
   color: var(--text-muted);
   background: var(--surface-soft);
   font-family: var(--font-mono);
-  font-size: 0.64rem;
+  font-size: var(--text-label);
 }
 
 .post-divider {
@@ -381,8 +381,8 @@ onBeforeUnmount(() => {
   gap: 16px;
   color: var(--text-muted);
   font-family: var(--font-mono);
-  font-size: 0.56rem;
-  letter-spacing: 0.16em;
+  font-size: var(--text-label);
+  letter-spacing: 0.12em;
 }
 
 .post-divider span:not(.divider-label) {
@@ -397,7 +397,7 @@ onBeforeUnmount(() => {
 
 .prose {
   color: var(--text-soft);
-  font-size: 1rem;
+  font-size: 1.0625rem;
   line-height: 1.92;
 }
 
@@ -423,6 +423,15 @@ onBeforeUnmount(() => {
   font-size: 0.9em;
   font-weight: 500;
   content: '#';
+}
+
+.prose :deep(h3) {
+  margin: 2.2em 0 0.7em;
+  color: var(--text);
+  font-size: 1.1rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.45;
 }
 
 .prose :deep(a) {
@@ -457,6 +466,41 @@ onBeforeUnmount(() => {
   font-family: var(--font-mono);
   font-size: 0.75em;
   content: '▸';
+}
+
+.prose :deep(ol) {
+  margin: 1.15em 0;
+  padding-left: 1.55em;
+  list-style: decimal;
+}
+
+.prose :deep(ol li) {
+  margin: 0.45em 0;
+  padding-left: 0.15em;
+}
+
+.prose :deep(ol li::before) {
+  content: none;
+}
+
+.prose :deep(ol li::marker) {
+  color: var(--accent);
+  font-family: var(--font-mono);
+}
+
+.prose :deep(hr) {
+  margin: 2.6em 0;
+  border: 0;
+  border-top: 1px solid var(--border);
+}
+
+.prose :deep(img) {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 1.8em auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
 }
 
 .prose :deep(blockquote) {
@@ -497,7 +541,7 @@ onBeforeUnmount(() => {
   border: 0;
   color: var(--code-text);
   background: transparent;
-  font-size: 0.82rem;
+  font-size: var(--text-small);
   line-height: 1.75;
 }
 
@@ -508,8 +552,8 @@ onBeforeUnmount(() => {
   gap: 16px;
   color: var(--text-muted);
   font-family: var(--font-mono);
-  font-size: 0.6rem;
-  letter-spacing: 0.16em;
+  font-size: var(--text-label);
+  letter-spacing: 0.14em;
 }
 
 .end-line {
@@ -554,14 +598,14 @@ a.post-nav-item:hover {
 .post-nav-label {
   color: var(--text-muted);
   font-family: var(--font-mono);
-  font-size: 0.62rem;
+  font-size: var(--text-label);
 }
 
 .post-nav-title {
   color: var(--text-soft);
-  font-size: 0.9rem;
+  font-size: var(--text-small);
   font-weight: 500;
-  line-height: 1.5;
+  line-height: 1.55;
 }
 
 a.post-nav-item:hover .post-nav-title {
@@ -583,7 +627,7 @@ a.post-nav-item:hover .post-nav-title {
 .loading-command {
   color: var(--accent);
   font-family: var(--font-mono);
-  font-size: 0.7rem;
+  font-size: var(--text-label);
 }
 
 .loading-line {
@@ -615,7 +659,7 @@ a.post-nav-item:hover .post-nav-title {
 .missing-code {
   color: var(--accent);
   font-family: var(--font-mono);
-  font-size: 0.7rem;
+  font-size: var(--text-label);
   letter-spacing: 0.12em;
 }
 
@@ -627,7 +671,7 @@ a.post-nav-item:hover .post-nav-title {
 .post-missing p {
   margin-top: 14px;
   color: var(--text-muted);
-  font-size: 0.92rem;
+  font-size: var(--text-small);
 }
 
 .button-link {
@@ -639,7 +683,7 @@ a.post-nav-item:hover .post-nav-title {
   color: var(--accent);
   background: var(--accent-soft);
   font-family: var(--font-mono);
-  font-size: 0.72rem;
+  font-size: var(--text-label);
 }
 
 .button-link:hover {
@@ -690,7 +734,7 @@ a.post-nav-item:hover .post-nav-title {
   }
 
   .prose {
-    font-size: 0.96rem;
+    font-size: var(--text-body);
   }
 
   .prose :deep(h2) {

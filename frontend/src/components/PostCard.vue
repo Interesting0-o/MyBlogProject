@@ -54,7 +54,9 @@ defineProps<{
   overflow: hidden;
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  background: var(--surface);
+  background:
+    radial-gradient(circle at 100% 0, var(--surface-glow), transparent 42%),
+    var(--surface);
   transition:
     transform 0.24s ease,
     border-color 0.24s ease,
@@ -93,6 +95,7 @@ defineProps<{
   border-color: var(--accent-line);
   background:
     linear-gradient(135deg, var(--accent-soft), transparent 58%),
+    radial-gradient(circle at 100% 0, var(--surface-glow), transparent 42%),
     var(--surface);
 }
 
@@ -103,7 +106,7 @@ defineProps<{
 
 .post-link {
   display: block;
-  padding: 22px 24px 20px;
+  padding: 1.5rem 1.6rem 1.35rem;
 }
 
 .post-top {
@@ -115,7 +118,7 @@ defineProps<{
 .post-index {
   color: var(--accent);
   font-family: var(--font-mono);
-  font-size: 0.7rem;
+  font-size: var(--text-label);
   letter-spacing: 0.04em;
 }
 
@@ -123,10 +126,10 @@ defineProps<{
   display: flex;
   align-items: center;
   gap: 8px;
-  color: var(--text-muted);
+  color: var(--text-soft);
   font-family: var(--font-mono);
-  font-size: 0.68rem;
-  letter-spacing: 0.04em;
+  font-size: var(--text-label);
+  letter-spacing: 0.03em;
 }
 
 .meta-divider {
@@ -140,15 +143,15 @@ defineProps<{
   border-radius: 4px;
   color: var(--accent);
   font-family: var(--font-mono);
-  font-size: 0.58rem;
-  letter-spacing: 0.1em;
+  font-size: var(--text-label);
+  letter-spacing: 0.08em;
   line-height: 1.4;
 }
 
 .post-title {
-  margin-top: 14px;
+  margin-top: 0.9rem;
   color: var(--text);
-  font-size: clamp(1.2rem, 2.2vw, 1.48rem);
+  font-size: clamp(1.35rem, 2.2vw, 1.7rem);
   letter-spacing: -0.035em;
   transition: color 0.2s ease;
 }
@@ -159,10 +162,10 @@ defineProps<{
 
 .post-excerpt {
   max-width: 62ch;
-  margin-top: 8px;
-  color: var(--text-muted);
-  font-size: 0.9rem;
-  line-height: 1.72;
+  margin-top: 0.55rem;
+  color: var(--text-soft);
+  font-size: var(--text-body);
+  line-height: 1.78;
 }
 
 .post-bottom {
@@ -181,19 +184,20 @@ defineProps<{
 }
 
 .post-tags li {
-  padding: 2px 7px;
-  border-radius: 4px;
-  color: var(--text-muted);
+  padding: 0.25rem 0.5rem;
+  border-radius: 5px;
+  color: var(--text-soft);
   background: var(--surface-soft);
   font-family: var(--font-mono);
-  font-size: 0.64rem;
+  font-size: var(--text-label);
+  font-weight: 500;
   letter-spacing: 0.01em;
 }
 
 .post-arrow {
   display: grid;
-  width: 30px;
-  height: 30px;
+  width: 2rem;
+  height: 2rem;
   flex: 0 0 auto;
   place-items: center;
   border: 1px solid var(--border);
@@ -219,7 +223,7 @@ defineProps<{
   }
 
   .post-excerpt {
-    font-size: 0.86rem;
+    font-size: var(--text-small);
   }
 
   .post-bottom {

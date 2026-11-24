@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref } from 'vue'
-import DOMPurify from 'dompurify'
-import { marked } from 'marked'
+import { renderMarkdown } from '@/utils/markdown'
 
 const title = ref('')
 const slug = ref('')
@@ -23,9 +22,7 @@ const tagList = computed(() =>
 
 const filename = computed(() => slug.value.trim() || 'untitled')
 
-const previewHtml = computed(() =>
-  DOMPurify.sanitize(marked.parse(content.value, { async: false, gfm: true })),
-)
+const previewHtml = computed(() => renderMarkdown(content.value))
 
 const copyLabel = computed(() => {
   if (copyState.value === 'copied') return '已复制'

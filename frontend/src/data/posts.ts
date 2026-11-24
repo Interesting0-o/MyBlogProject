@@ -1,5 +1,5 @@
-import { marked } from 'marked'
 import type { Post } from '@/types/blog'
+import { renderMarkdown } from '@/utils/markdown'
 
 const markdownModules = import.meta.glob<string>('../content/posts/*.md', {
   eager: true,
@@ -80,7 +80,7 @@ function parsePost(path: string, source: string): Post {
     tags,
     readingMinutes,
     featured: frontmatter.featured === 'true',
-    content: marked.parse(markdown, { async: false, gfm: true }),
+    content: renderMarkdown(markdown),
   }
 }
 

@@ -1,8 +1,12 @@
 import { mockPosts } from '@/data/posts'
 import type { Post } from '@/types/blog'
+import { sanitizeHtml } from '@/utils/markdown'
 
 const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL || '/api').replace(/\/+$/, '')
 const useMockData = import.meta.env.VITE_USE_MOCK_DATA !== 'false'
+
+let cachedPosts: Post[] | undefined
+let pendingPosts: Promise<Post[]> | undefined
 
 function clonePost(post: Post): Post {
   return {
@@ -11,9 +15,16 @@ function clonePost(post: Post): Post {
   }
 }
 
-function normalizePosts(posts: Post[]): Post[] {
+function sanitizePostContent(post: Post): Post {
+  return {
+    ...clonePost(post),
+    content: sanitizeHtml(post.content),
+  }
+}
+
+function normalizePosts(posts: Post[], sanitizeContent = false): Post[] {
   return posts
-    .map(clonePost)
+    .map((post) => (sanitizeContent ? sanitizePostContent(post) : clonePost(post)))
     .sort((a, b) => b.publishedAt.localeCompare(a.publishedAt))
 }
 
@@ -39,9 +50,20 @@ async function fetchRemotePosts(): Promise<Post[]> {
     throw new Error('Invalid posts response')
   }
 
-  return normalizePosts(posts)
+  return normalizePosts(posts, true)
 }
 
 export async function fetchPosts(): Promise<Post[]> {
-  return useMockData ? fetchMockPosts() : fetchRemotePosts()
+  if (cachedPosts) return cachedPosts
+
+  pendingPosts ??= (useMockData ? fetchMockPosts() : fetchRemotePosts())
+    .then((posts) => {
+      cachedPosts = posts
+      return posts
+    })
+    .finally(() => {
+      pendingPosts = undefined
+    })
+
+  return pendingPosts
 }

@@ -135,12 +135,12 @@ onBeforeUnmount(() => {
       <template v-else>
         <header class="post-header">
           <div class="post-kicker">
-            <span>// ARTICLE</span>
+            <span>ARTICLE</span>
             <span class="kicker-sep" aria-hidden="true">/</span>
             <span>{{ currentPost.readingMinutes }} MIN READ</span>
           </div>
 
-          <h1>{{ currentPost.title }}</h1>
+          <h1 :title="currentPost.title">{{ currentPost.title }}</h1>
           <p class="post-lead">{{ currentPost.description }}</p>
 
           <div class="post-meta-row">
@@ -274,10 +274,13 @@ onBeforeUnmount(() => {
 
 .post-header h1 {
   margin-top: 18px;
-  font-size: clamp(2rem, 5.2vw, 3.45rem);
+  overflow: hidden;
+  font-size: clamp(1.45rem, 3.4vw, 2.35rem);
   font-weight: 650;
-  letter-spacing: -0.055em;
-  line-height: 1.14;
+  letter-spacing: -0.04em;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .post-kicker {
@@ -406,23 +409,12 @@ onBeforeUnmount(() => {
 }
 
 .prose :deep(h2) {
-  display: flex;
   margin: 2.7em 0 0.85em;
-  align-items: center;
-  gap: 10px;
   color: var(--text);
   font-size: 1.36rem;
   font-weight: 600;
   letter-spacing: -0.03em;
   line-height: 1.35;
-}
-
-.prose :deep(h2::before) {
-  color: var(--accent);
-  font-family: var(--font-mono);
-  font-size: 0.9em;
-  font-weight: 500;
-  content: '#';
 }
 
 .prose :deep(h3) {

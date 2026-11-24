@@ -86,7 +86,7 @@ onBeforeUnmount(() => {
 <template>
   <section class="admin-page page-with-glow container">
     <header class="admin-header">
-      <span class="page-kicker">// ADMIN · PUBLISH</span>
+      <span class="page-kicker">ADMIN · PUBLISH</span>
       <h1>发布 Markdown</h1>
       <p>
         在浏览器里整理文章、检查 Frontmatter 和预览正文。认证与发布 API 接入后，这里会直接写入后台。
@@ -110,7 +110,7 @@ onBeforeUnmount(() => {
         </svg>
       </span>
       <div class="auth-copy">
-        <span>// AUTH REQUIRED</span>
+        <span>AUTH REQUIRED</span>
         <strong>认证接口尚未接入</strong>
         <p>当前页面只用于撰写和预览，发布按钮保持禁用；认证必须在服务端完成。</p>
       </div>
@@ -120,7 +120,7 @@ onBeforeUnmount(() => {
     <div class="admin-grid">
       <form class="admin-panel editor-panel" @submit.prevent>
         <div class="panel-heading">
-          <span>// EDITOR</span>
+          <span>EDITOR</span>
           <span>{{ filename }}.md</span>
         </div>
 

@@ -10,7 +10,7 @@ defineProps<{
 <template>
   <article class="post-card">
     <a class="post-link" :href="`#/posts/${post.slug}`">
-      <h3 class="post-title">{{ post.title }}</h3>
+      <h3 class="post-title" :title="post.title">{{ post.title }}</h3>
 
       <div class="post-meta-row">
         <div class="post-meta">
@@ -38,10 +38,13 @@ defineProps<{
 }
 
 .post-title {
+  overflow: hidden;
   color: var(--text);
-  font-size: 1.05rem;
+  font-size: 1rem;
   letter-spacing: -0.02em;
+  text-overflow: ellipsis;
   transition: color 0.2s ease;
+  white-space: nowrap;
 }
 
 .post-card:hover .post-title {

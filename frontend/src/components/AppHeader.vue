@@ -12,10 +12,7 @@ const navItems = [
   { index: '03', label: '关于', routeName: 'about', href: '#/about' },
 ] as const
 
-const activeRoute = computed(() => {
-  if (route.value.name === 'post') return 'home'
-  return route.value.name
-})
+const activeRoute = computed(() => route.value.name)
 </script>
 
 <template>

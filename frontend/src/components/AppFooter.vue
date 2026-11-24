@@ -39,12 +39,12 @@ function scrollToTop() {
       </div>
 
       <nav class="footer-column" aria-label="站内导航">
-        <span class="footer-heading">// SITEMAP</span>
+        <span class="footer-heading">SITEMAP</span>
         <a v-for="item in navItems" :key="item.href" :href="item.href">{{ item.label }}</a>
       </nav>
 
       <div class="footer-column">
-        <span class="footer-heading">// ELSEWHERE</span>
+        <span class="footer-heading">ELSEWHERE</span>
         <a
           v-for="link in contactLinks"
           :key="link.label"
@@ -58,7 +58,7 @@ function scrollToTop() {
       </div>
 
       <div class="footer-column">
-        <span class="footer-heading">// DISPLAY</span>
+        <span class="footer-heading">DISPLAY</span>
         <button
           class="footer-action"
           type="button"

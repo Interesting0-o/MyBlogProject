@@ -35,6 +35,8 @@ function shortHash(value: string): string {
   return (hash >>> 0).toString(16).padStart(6, '0').slice(0, 6)
 }
 
+const hasFilters = computed(() => Boolean(query.value.trim() || selectedTag.value))
+
 const filteredPosts = computed(() => {
   const keyword = query.value.trim().toLowerCase()
   const tag = selectedTag.value
@@ -51,7 +53,9 @@ const filteredPosts = computed(() => {
   })
 })
 
-const hasFilters = computed(() => Boolean(query.value.trim() || selectedTag.value))
+const resultCountLabel = computed(() =>
+  loading.value ? '--' : `${filteredPosts.value.length} 篇文章`,
+)
 const postCountLabel = computed(() =>
   loading.value ? '--' : String(posts.value.length).padStart(2, '0'),
 )
@@ -183,6 +187,7 @@ onBeforeUnmount(() => {
                 :key="post.slug"
                 class="terminal-log-line"
                 :href="`#/posts/${post.slug}`"
+                :title="post.title"
               >
                 <span class="terminal-log-hash">{{ shortHash(post.slug) }}</span>
                 <span class="terminal-log-title">{{ post.title }}</span>
@@ -210,11 +215,20 @@ onBeforeUnmount(() => {
 
     <section id="writing" class="writing container">
       <div class="writing-main">
-        <FeaturedPostCard v-if="featuredPost" :post="featuredPost" />
+        <div v-if="loading" class="featured-skeleton" aria-hidden="true">
+          <span class="skeleton-line skeleton-line--kicker"></span>
+          <div class="featured-skeleton-card">
+            <span class="skeleton-line skeleton-line--meta"></span>
+            <span class="skeleton-line skeleton-line--featured-title"></span>
+            <span class="skeleton-line"></span>
+            <span class="skeleton-line skeleton-line--medium"></span>
+          </div>
+        </div>
+        <FeaturedPostCard v-else-if="featuredPost" :post="featuredPost" />
 
         <div class="section-head">
           <div>
-            <span class="section-kicker">// LATEST POSTS</span>
+            <span class="section-kicker">LATEST POSTS</span>
             <h2>最近写下的</h2>
           </div>
 
@@ -278,16 +292,14 @@ onBeforeUnmount(() => {
         </div>
 
         <div class="result-meta">
-          <span>{{ filteredPosts.length }} 篇文章</span>
+          <span>{{ resultCountLabel }}</span>
           <button v-if="hasFilters" type="button" @click="resetFilters">清除筛选</button>
         </div>
 
         <div v-if="loading" class="post-list" aria-busy="true" aria-label="正在加载文章">
-          <div v-for="item in 3" :key="item" class="skeleton-card">
-            <span class="skeleton-line skeleton-line--short"></span>
-            <span class="skeleton-line skeleton-line--title"></span>
-            <span class="skeleton-line"></span>
-            <span class="skeleton-line skeleton-line--medium"></span>
+          <div v-for="item in 4" :key="item" class="skeleton-row">
+            <span class="skeleton-line skeleton-line--row-title"></span>
+            <span class="skeleton-line skeleton-line--row-meta"></span>
           </div>
         </div>
 
@@ -323,7 +335,7 @@ onBeforeUnmount(() => {
 
       <aside class="sidebar">
         <section class="side-card">
-          <span class="side-label">// PROFILE</span>
+          <span class="side-label">PROFILE</span>
           <div class="side-profile">
             <span class="side-avatar" aria-hidden="true">❯_</span>
             <div>
@@ -339,7 +351,7 @@ onBeforeUnmount(() => {
         </section>
 
         <section class="side-card">
-          <span class="side-label">// NOW</span>
+          <span class="side-label">NOW</span>
           <ul class="now-list">
             <li>
               <span>building</span>
@@ -851,12 +863,17 @@ onBeforeUnmount(() => {
   gap: 10px;
 }
 
-.skeleton-card {
+.featured-skeleton {
+  margin-bottom: clamp(2.5rem, 5vw, 4rem);
+}
+
+.featured-skeleton-card {
   display: flex;
-  min-height: 168px;
+  min-height: 230px;
+  margin-top: 0.9rem;
   flex-direction: column;
   gap: 12px;
-  padding: 24px;
+  padding: clamp(1.5rem, 3vw, 2.25rem);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   background: var(--surface);
@@ -870,19 +887,41 @@ onBeforeUnmount(() => {
   animation: skeleton-pulse 1.4s ease-in-out infinite;
 }
 
-.skeleton-line--short {
-  width: 24%;
+.skeleton-line--kicker {
+  width: 12%;
   height: 7px;
 }
 
-.skeleton-line--title {
-  width: 66%;
-  height: 20px;
-  margin-top: 10px;
+.skeleton-line--meta {
+  width: 24%;
+  height: 8px;
+}
+
+.skeleton-line--featured-title {
+  width: 58%;
+  height: 26px;
+  margin-top: 6px;
 }
 
 .skeleton-line--medium {
-  width: 54%;
+  width: 46%;
+}
+
+.skeleton-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 15px 0;
+}
+
+.skeleton-line--row-title {
+  width: 52%;
+  height: 20px;
+}
+
+.skeleton-line--row-meta {
+  width: 28%;
+  height: 8px;
 }
 
 .empty-state {

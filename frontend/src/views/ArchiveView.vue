@@ -44,15 +44,11 @@ onMounted(loadPosts)
 <template>
   <section class="archive-page page-with-glow container">
     <header class="page-header">
-      <div class="page-kicker">// ARCHIVE</div>
+      <div class="page-kicker">ARCHIVE</div>
       <h1>全部归档<span class="accent">.</span></h1>
-      <p>按时间倒序排列。这里保存着所有已经写完的思考与折腾。</p>
-
-      <div class="archive-command">
-        <span class="command-prompt">❯</span>
-        <span>find ./posts -type f | wc -l</span>
-        <span class="command-output">{{ loading ? '...' : posts.length }}</span>
-      </div>
+      <p>
+        共 {{ loading ? '…' : posts.length }} 篇文章，按时间倒序排列。这里保存着所有已经写完的思考与折腾。
+      </p>
     </header>
 
     <div v-if="loading" class="archive-loading" aria-busy="true">
@@ -84,7 +80,7 @@ onMounted(loadPosts)
             :href="`#/posts/${post.slug}`"
           >
             <time :datetime="post.publishedAt">{{ formatMonthDay(post.publishedAt) }}</time>
-            <span class="archive-title">{{ post.title }}</span>
+            <span class="archive-title" :title="post.title">{{ post.title }}</span>
           </a>
         </div>
       </section>
@@ -130,30 +126,6 @@ onMounted(loadPosts)
   margin-top: 18px;
   color: var(--text-muted);
   font-size: var(--text-body);
-}
-
-.archive-command {
-  display: inline-flex;
-  margin-top: 28px;
-  align-items: center;
-  gap: 9px;
-  padding: 9px 12px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  color: var(--text-muted);
-  background: var(--surface);
-  font-family: var(--font-mono);
-  font-size: var(--text-label);
-}
-
-.command-prompt {
-  color: var(--accent);
-}
-
-.command-output {
-  padding-left: 9px;
-  border-left: 1px solid var(--border);
-  color: var(--accent);
 }
 
 .archive-groups {

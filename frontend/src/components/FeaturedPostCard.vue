@@ -9,7 +9,7 @@ defineProps<{
 
 <template>
   <section class="featured-block" aria-labelledby="featured-post-title">
-    <span class="featured-kicker">// FEATURED</span>
+    <span class="featured-kicker">FEATURED</span>
 
     <a class="featured-card" :href="`#/posts/${post.slug}`">
       <div class="featured-meta">
@@ -18,7 +18,7 @@ defineProps<{
         <span>{{ post.readingMinutes }} MIN</span>
       </div>
 
-      <h2 id="featured-post-title" class="featured-title">{{ post.title }}</h2>
+      <h2 id="featured-post-title" class="featured-title" :title="post.title">{{ post.title }}</h2>
       <p class="featured-excerpt">{{ post.description }}</p>
 
       <div class="featured-footer">
@@ -83,11 +83,14 @@ defineProps<{
 
 .featured-title {
   margin-top: 0.8rem;
+  overflow: hidden;
   color: var(--text);
-  font-size: clamp(1.7rem, 3.2vw, 2.4rem);
-  letter-spacing: -0.045em;
-  line-height: 1.2;
+  font-size: clamp(1.35rem, 2.2vw, 1.85rem);
+  letter-spacing: -0.035em;
+  line-height: 1.3;
+  text-overflow: ellipsis;
   transition: color 0.2s ease;
+  white-space: nowrap;
 }
 
 .featured-card:hover .featured-title {

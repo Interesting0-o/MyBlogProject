@@ -22,7 +22,7 @@ function isExternal(href: string): boolean {
           />
 
           <div class="profile-copy">
-            <div class="page-kicker">// ABOUT ME</div>
+            <div class="page-kicker">ABOUT ME</div>
             <h1>
               <span class="profile-name">{{ profile.name }}</span>
               <span class="profile-handle">{{ profile.handle }}</span>
@@ -195,7 +195,7 @@ function isExternal(href: string): boolean {
 
       <aside class="about-aside">
         <div class="quote-card">
-          <span class="quote-label">// MOTTO</span>
+          <span class="quote-label">MOTTO</span>
           <p>“Make it work,<br />make it right,<br />make it fast.”</p>
           <span class="quote-author">— Kent Beck</span>
         </div>

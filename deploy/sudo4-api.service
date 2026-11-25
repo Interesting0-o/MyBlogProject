@@ -1,0 +1,22 @@
+[Unit]
+Description=sudo4 blog API
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+User=sudo4
+Group=sudo4
+WorkingDirectory=/opt/sudo4
+EnvironmentFile=-/opt/sudo4/.env
+ExecStart=/opt/sudo4/current/sudo4-api
+Restart=on-failure
+RestartSec=2
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/opt/sudo4/resource /opt/sudo4/backups
+
+[Install]
+WantedBy=multi-user.target

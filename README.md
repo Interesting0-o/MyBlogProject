@@ -80,6 +80,54 @@ Git 本身不会在 `clone` / `pull` 时运行构建或下载附件，需要先�
 
 产物目录在 `.artifacts/`，可通过 `DEST` 修改，通过 `RELEASE_TAG` 指定版本。
 
+## 生产部署（热更新）
+
+生产环境建议把仓库和运行目录分开，例如把仓库放在 `/srv/MyBlogProject`，运行目录为 `/opt/sudo4`：
+
+```text
+/opt/sudo4/
+├── current -> releases/v0.1.0-20261125010203/
+├── releases/
+├── backups/
+├── resource/sudo4.db
+└── .env
+```
+
+首次部署：
+
+```bash
+sudo useradd --system --user-group --home /opt/sudo4 --shell /usr/sbin/nologin sudo4
+sudo install -d -o sudo4 -g sudo4 /opt/sudo4
+git clone https://github.com/Interesting0-o/MyBlogProject /srv/MyBlogProject
+cd /srv/MyBlogProject
+
+sudo cp deploy/sudo4-api.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo cp deploy/nginx.conf /etc/nginx/conf.d/sudo4.conf
+sudo nginx -t && sudo systemctl reload nginx
+
+sudo ./scripts/deploy.sh
+sudo systemctl enable sudo4-api
+```
+
+`deploy.sh` 会依次：下载 Release 产物 → 备份 SQLite → 解包到 `releases/<id>/` → 原子切换 `current` 软链 → 重启服务 → 健康检查 `/health`，失败时自动切回上一个版本。首次运行会自动从 `.env.example` 生成 `/opt/sudo4/.env`，上线前请检查其中的 `BACKEND_HOST`、`DATABASE_URL` 等配置。
+
+常用操作：
+
+```bash
+sudo RELEASE_TAG=v0.1.0 ./scripts/deploy.sh   # 固定版本
+sudo APP_ROOT=/srv/sudo4 ./scripts/deploy.sh  # 自定义运行目录
+sudo SKIP_RESTART=1 ./scripts/deploy.sh       # 只拉取并切换，不重启
+```
+
+热更新语义：
+
+- 文章内容存于 SQLite，通过 API 读取，改内容不需要重新构建或重启。
+- 前端是静态文件，切换 `current` 后 nginx 立即读取新 `dist/`，无需 reload。
+- 后端需要重启进程，存在秒级中断；要完全零停机需要 blue-green 或多实例加 upstream 切换。
+
+生产环境建议固定 `v*` 标签，而不是使用每次 `main` 推送都会覆盖的 `latest`，也不要依赖开发用的 `post-merge` Hook 自动更新。`KEEP_RELEASES` 和 `KEEP_BACKUPS` 分别控制保留的版本与备份数量（默认 5 和 10）；`DB_PATH`、`HEALTH_URL`、`HEALTH_ATTEMPTS`、`APP_USER` 可按需覆盖。systemd 和 nginx 配置中的 `/opt/sudo4`、`sudo4` 用户、域名需要按实际环境调整。
+
 ## Release 配置
 
 前端构建可通过仓库的 Actions Variables 配置：

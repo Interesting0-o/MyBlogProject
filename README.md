@@ -64,7 +64,7 @@ Git 本身不会在 `clone` / `pull` 时运行构建或下载附件，需要先�
 ./scripts/fetch-release.sh v0.1.0
 ```
 
-产物目录在 `.artifacts/`，可通过 `DEST` 修改，通过 `RELEASE_TAG` 指定版本。
+产物目录在 `.artifacts/`，可通过 `DEST` 修改，通过 `RELEASE_TAG` 指定版本。下载会复用 git 的 `https.proxy`/`http.proxy`，也可以用 `RELEASE_PROXY` 覆盖。
 
 ## 生产部署（热更新）
 

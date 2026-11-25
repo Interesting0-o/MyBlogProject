@@ -44,15 +44,28 @@ base_url="https://github.com/${repo}/releases/download/${tag}"
 temporary_dir="$(mktemp -d)"
 trap 'rm -rf "$temporary_dir"' EXIT
 
+curl_args=(curl -fL --retry 3 --retry-delay 2)
+proxy="${RELEASE_PROXY:-}"
+if [[ -z "$proxy" ]]; then
+  proxy="$(git -C "$repo_root" config --get https.proxy || true)"
+fi
+if [[ -z "$proxy" ]]; then
+  proxy="$(git -C "$repo_root" config --get http.proxy || true)"
+fi
+if [[ -n "$proxy" ]]; then
+  curl_args+=(--proxy "$proxy")
+fi
+
 printf 'Fetching %s from %s@%s...\n' "$asset" "$repo" "$tag"
 
-if ! curl -fL --retry 3 --retry-delay 2 -o "$temporary_dir/$asset" "$base_url/$asset"; then
+if ! "${curl_args[@]}" -o "$temporary_dir/$asset" "$base_url/$asset"; then
   printf 'Download failed.\n' >&2
+  printf 'If GitHub is unreachable directly, set https.proxy via git config or RELEASE_PROXY.\n' >&2
   printf 'Wait for the release workflow to finish, or check the tag/repository.\n' >&2
   exit 1
 fi
 
-if curl -fsSL --retry 3 --retry-delay 2 -o "$temporary_dir/SHA256SUMS" "$base_url/SHA256SUMS"; then
+if "${curl_args[@]}" -sS -o "$temporary_dir/SHA256SUMS" "$base_url/SHA256SUMS"; then
   expected="$(awk -v name="$asset" '$2 == name { print $1 }' "$temporary_dir/SHA256SUMS")"
 
   if [[ -z "$expected" ]]; then

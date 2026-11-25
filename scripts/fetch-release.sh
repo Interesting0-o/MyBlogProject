@@ -44,13 +44,37 @@ base_url="https://github.com/${repo}/releases/download/${tag}"
 temporary_dir="$(mktemp -d)"
 trap 'rm -rf "$temporary_dir"' EXIT
 
+read_git_proxy() {
+  local key="$1" value home config
+  value="$(git -C "$repo_root" config --get "$key" 2>/dev/null || true)"
+  if [[ -n "$value" ]]; then
+    printf '%s\n' "$value"
+    return 0
+  fi
+
+  if [[ -n "${SUDO_USER:-}" && "$SUDO_USER" != "root" ]]; then
+    home="$(getent passwd "$SUDO_USER" 2>/dev/null | cut -d: -f6)"
+    if [[ -n "$home" ]]; then
+      for config in "$home/.config/git/config" "$home/.gitconfig"; do
+        if [[ -f "$config" ]]; then
+          value="$(git config -f "$config" --get "$key" 2>/dev/null || true)"
+          if [[ -n "$value" ]]; then
+            printf '%s\n' "$value"
+            return 0
+          fi
+        fi
+      done
+    fi
+  fi
+}
+
 curl_args=(curl -fL --retry 3 --retry-delay 2)
 proxy="${RELEASE_PROXY:-}"
 if [[ -z "$proxy" ]]; then
-  proxy="$(git -C "$repo_root" config --get https.proxy || true)"
+  proxy="$(read_git_proxy https.proxy)"
 fi
 if [[ -z "$proxy" ]]; then
-  proxy="$(git -C "$repo_root" config --get http.proxy || true)"
+  proxy="$(read_git_proxy http.proxy)"
 fi
 if [[ -n "$proxy" ]]; then
   curl_args+=(--proxy "$proxy")

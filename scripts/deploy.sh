@@ -21,6 +21,10 @@ current_link="$app_root/current"
 log() { printf '[deploy] %s\n' "$*"; }
 die() { printf '[deploy] ERROR: %s\n' "$*" >&2; exit 1; }
 
+if [[ ! "$health_attempts" =~ ^[1-9][0-9]*$ ]]; then
+  die "HEALTH_ATTEMPTS must be a positive integer"
+fi
+
 as_root() {
   if [[ "$EUID" -eq 0 ]]; then
     "$@"
@@ -92,7 +96,13 @@ resolve_db_path() {
 
 db_path="$(resolve_db_path)"
 if [[ -f "$db_path" ]]; then
-  backup_path="$backups_dir/sudo4-$(date -u +%Y%m%d%H%M%S).db"
+  backup_base="$backups_dir/sudo4-$(date -u +%Y%m%d%H%M%S)"
+  backup_path="$backup_base.db"
+  backup_suffix=0
+  while [[ -e "$backup_path" ]]; do
+    backup_suffix=$((backup_suffix + 1))
+    backup_path="$backup_base-$backup_suffix.db"
+  done
   if command -v sqlite3 >/dev/null 2>&1; then
     sqlite3 "$db_path" ".backup '$backup_path'"
     log "Database backed up to $backup_path"
@@ -138,8 +148,8 @@ restart_service() {
 
 wait_for_health() {
   local attempt
-  for attempt in {1..20}; do
-    if curl -fsS --max-time 2 "$health_url" >/dev/null 2>&1; then
+  for ((attempt = 1; attempt <= health_attempts; attempt++)); do
+    if curl --noproxy '*' -fsS --max-time 2 "$health_url" >/dev/null 2>&1; then
       return 0
     fi
     sleep 1

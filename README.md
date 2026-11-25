@@ -64,11 +64,53 @@ Git 本身不会在 `clone` / `pull` 时运行构建或下载附件，需要先�
 ./scripts/fetch-release.sh v0.1.0
 ```
 
-产物目录在 `.artifacts/`，可通过 `DEST` 修改，通过 `RELEASE_TAG` 指定版本。下载会复用 git 的 `https.proxy`/`http.proxy`，也可以用 `RELEASE_PROXY` 覆盖。
+产物目录在 `.artifacts/`，可通过 `DEST` 修改，通过 `RELEASE_TAG` 指定版本。下载会复用 git 的 `https.proxy`/`http.proxy`（`sudo` 时读取 `SUDO_USER` 的配置），也可以用 `RELEASE_PROXY` 覆盖。
 
 ## 生产部署（热更新）
 
-生产环境建议把仓库和运行目录分开，例如把仓库放在 `/srv/MyBlogProject`，运行目录为 `/opt/sudo4`：
+### 快速部署
+
+适用于全新的 Linux x86_64 服务器（下文以 Ubuntu/Debian 为例）。默认仓库放在 `/srv/MyBlogProject`，运行目录为 `/opt/sudo4`。
+
+开始前：如果服务器不能直连 GitHub，请在 `git clone` 前配置 git 代理（部署时也可以传 `RELEASE_PROXY`）。克隆后在执行 `nginx -t` 前，把 `deploy/nginx.conf` 里的 `blog.example.com` 改成实际域名。
+
+```bash
+sudo apt update && sudo apt install -y nginx curl sqlite3
+sudo systemctl enable --now nginx
+
+sudo useradd --system --user-group --home /opt/sudo4 --shell /usr/sbin/nologin sudo4 2>/dev/null || true
+sudo install -d -o sudo4 -g sudo4 /opt/sudo4
+sudo install -d -o "$USER" -g "$USER" /srv/MyBlogProject
+git clone https://github.com/Interesting0-o/MyBlogProject.git /srv/MyBlogProject
+
+cd /srv/MyBlogProject
+sudo cp deploy/sudo4-api.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo cp deploy/nginx.conf /etc/nginx/conf.d/sudo4.conf
+sudo nginx -t && sudo systemctl reload nginx
+
+sudo ./scripts/deploy.sh
+sudo systemctl enable sudo4-api
+```
+
+检查是否启动成功：
+
+```bash
+curl http://127.0.0.1:3000/health
+curl -I http://服务器地址/
+```
+
+后续更新：
+
+```bash
+cd /srv/MyBlogProject
+git pull --ff-only
+sudo RELEASE_TAG=v0.1.0 ./scripts/deploy.sh   # 固定版本；省略则使用 latest
+```
+
+### 目录结构
+
+生产环境建议把仓库和运行目录分开：
 
 ```text
 /opt/sudo4/
@@ -77,23 +119,6 @@ Git 本身不会在 `clone` / `pull` 时运行构建或下载附件，需要先�
 ├── backups/
 ├── resource/sudo4.db
 └── .env
-```
-
-首次部署：
-
-```bash
-sudo useradd --system --user-group --home /opt/sudo4 --shell /usr/sbin/nologin sudo4
-sudo install -d -o sudo4 -g sudo4 /opt/sudo4
-git clone https://github.com/Interesting0-o/MyBlogProject /srv/MyBlogProject
-cd /srv/MyBlogProject
-
-sudo cp deploy/sudo4-api.service /etc/systemd/system/
-sudo systemctl daemon-reload
-sudo cp deploy/nginx.conf /etc/nginx/conf.d/sudo4.conf
-sudo nginx -t && sudo systemctl reload nginx
-
-sudo ./scripts/deploy.sh
-sudo systemctl enable sudo4-api
 ```
 
 `deploy.sh` 会依次：下载 Release 产物 → 备份 SQLite → 解包到 `releases/<id>/` → 原子切换 `current` 软链 → 重启服务 → 健康检查 `/health`，失败时自动切回上一个版本。首次运行会自动从 `.env.example` 生成 `/opt/sudo4/.env`，上线前请检查其中的 `BACKEND_HOST`、`DATABASE_URL` 等配置。

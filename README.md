@@ -13,7 +13,7 @@ cd backend && cargo run
 
 后端默认使用 SQLite，数据库位于 `resource/sudo4.db`，首次启动会自动创建目录并执行迁移。
 
-前端默认通过 `/api/posts` 读取后端文章；设置 `VITE_USE_MOCK_DATA=true` 可以切回内置 mock，方便单独开发前端。开发环境由 Vite 代理 `/api`，部署时需要把 `/api` 反向代理到后端。
+前端所有文章都通过 `/api/posts` 从后端读取，不再内置文章或 mock 数据。开发环境由 Vite 代理 `/api`，部署时需要把 `/api` 反向代理到后端。
 
 SQL 使用 SQLx 查询宏做编译期校验，离线元数据在 `backend/.sqlx/`。修改 SQL 后需要在 `backend/` 下执行 `DATABASE_URL=sqlite://../resource/sudo4.db cargo sqlx prepare` 并提交更新后的 `.sqlx/`。
 
@@ -21,23 +21,9 @@ SQL 使用 SQLx 查询宏做编译期校验，离线元数据在 `backend/.sqlx/
 
 ## 写文章
 
-文章使用 Markdown 和 Frontmatter，文件名作为文章 URL 的 slug。`frontend/src/content/posts/` 目前保留用于 mock 模式和文章导入，已发布内容的源头是 SQLite：
+文章正文使用 Markdown，slug 作为文章 URL，元数据存放在 SQLite 的 `posts` 表中。已发布内容的唯一来源是数据库，前端仓库不再保存文章文件。
 
-```markdown
----
-title: 文章标题
-description: 文章摘要
-publishedAt: 2026-11-24
-updatedAt: 2026-11-25
-tags: Rust, Backend
-readingMinutes: 6
-featured: true
----
-
-这里开始写正文。
-```
-
-现有文章已通过 `backend/migrations/0002_seed_posts.sql` 写入 SQLite，正文以 Markdown 存储，前端统一用 `marked` 渲染。`updatedAt` 和 `featured` 可省略；`featured: true` 会启用首页的精选样式。
+现有文章由 `backend/migrations/0002_seed_posts.sql` 写入 SQLite，正文以 Markdown 存储，前端统一用 `marked` 渲染。字段包括 `title`、`description`、`published_at`、`updated_at`（可选）、`tags`、`reading_minutes` 和 `featured`（可选）；`featured` 为真时会启用首页的精选样式。
 
 发布页位于 `/#/admin`。当前可以撰写、预览、复制或下载 Markdown，但认证和发布 API 尚未接入，发布按钮保持禁用；在此之前，新增或修改文章需要更新 SQLite 的 `posts` 表。后续计划见 `TODO.md`。
 
@@ -133,6 +119,5 @@ sudo SKIP_RESTART=1 ./scripts/deploy.sh       # 只拉取并切换，不重启
 前端构建可通过仓库的 Actions Variables 配置：
 
 - `VITE_API_BASE_URL`：默认 `/api`
-- `VITE_USE_MOCK_DATA`：默认 `false`
 
 如果发布 Release 失败，请在仓库 `Settings → Actions → General → Workflow permissions` 中允许 `Read and write permissions`。

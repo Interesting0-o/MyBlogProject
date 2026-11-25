@@ -1,9 +1,7 @@
-import { mockPosts } from '@/data/posts'
 import type { Post } from '@/types/blog'
 import { renderMarkdown } from '@/utils/markdown'
 
 const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL || '/api').replace(/\/+$/, '')
-const useMockData = import.meta.env.VITE_USE_MOCK_DATA !== 'false'
 
 let cachedPosts: Post[] | undefined
 let pendingPosts: Promise<Post[]> | undefined
@@ -26,10 +24,6 @@ function normalizePosts(posts: Post[], renderContent = false): Post[] {
   return posts
     .map((post) => (renderContent ? renderRemotePostContent(post) : clonePost(post)))
     .sort((a, b) => b.publishedAt.localeCompare(a.publishedAt))
-}
-
-async function fetchMockPosts(): Promise<Post[]> {
-  return normalizePosts(mockPosts)
 }
 
 async function fetchRemotePosts(): Promise<Post[]> {
@@ -56,7 +50,7 @@ async function fetchRemotePosts(): Promise<Post[]> {
 export async function fetchPosts(): Promise<Post[]> {
   if (cachedPosts) return cachedPosts
 
-  pendingPosts ??= (useMockData ? fetchMockPosts() : fetchRemotePosts())
+  pendingPosts ??= fetchRemotePosts()
     .then((posts) => {
       cachedPosts = posts
       return posts

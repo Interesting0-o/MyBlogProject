@@ -83,7 +83,7 @@ jobs:
           DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
           DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
           DEPLOY_PORT: ${{ vars.DEPLOY_PORT || '22' }}
-          DEPLOY_PATH: ${{ vars.DEPLOY_PATH || '/srv/MyBlogProject' }}
+          DEPLOY_PATH: ${{ vars.DEPLOY_PATH || '/opt/sudo4' }}
           RELEASE_TAG: ${{ steps.release.outputs.tag }}
         run: |
           [[ -n "$DEPLOY_USER" ]] || { echo "Missing DEPLOY_USER secret" >&2; exit 1; }

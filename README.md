@@ -139,7 +139,7 @@ sudo SKIP_RESTART=1 ./scripts/deploy.sh       # 只拉取并切换，不重启
 
 仓库需要配置：
 
-- Secrets：`DEPLOY_HOST`、`DEPLOY_USER`、`DEPLOY_KEY`；可选 `DEPLOY_KNOWN_HOSTS`（`ssh-keyscan -H 服务器地址` 的输出，非 22 端口加 `-p`，用于固定主机指纹）。
+- Secrets：`DEPLOY_HOST`、`DEPLOY_USER`、`DEPLOY_KEY`（私钥的 base64 单行文本，`base64 -w0 ~/.ssh/sudo4_deploy`）；可选 `DEPLOY_KNOWN_HOSTS`（`ssh-keyscan -H 服务器地址` 的输出，非 22 端口加 `-p`，用于固定主机指纹）。
 - Variables：`DEPLOY_PATH`（默认 `/srv/MyBlogProject`）、`DEPLOY_PORT`（默认 `22`）。
 
 服务器需要已按快速部署初始化，`DEPLOY_USER` 能拉取仓库，并可免密执行部署脚本，例如：

@@ -58,8 +58,16 @@ jobs:
           [[ -n "$DEPLOY_HOST" ]] || { echo "Missing DEPLOY_HOST secret" >&2; exit 1; }
 
           install -m 700 -d "$HOME/.ssh"
-          printf '%s\n' "$DEPLOY_KEY" > "$HOME/.ssh/deploy_key"
+          printf '%b' "$DEPLOY_KEY" \
+            | tr -d '\r' \
+            | sed -n '/-----BEGIN .*PRIVATE KEY-----/,/-----END .*PRIVATE KEY-----/p' \
+            > "$HOME/.ssh/deploy_key"
           chmod 600 "$HOME/.ssh/deploy_key"
+
+          if ! ssh-keygen -y -P '' -f "$HOME/.ssh/deploy_key" >/dev/null 2>&1; then
+            echo "DEPLOY_KEY is not a valid unencrypted private key; store the full private key with real newlines" >&2
+            exit 1
+          fi
 
           if [[ -n "$DEPLOY_KNOWN_HOSTS" ]]; then
             printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"

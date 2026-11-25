@@ -123,6 +123,8 @@ sudo RELEASE_TAG=v0.1.0 ./scripts/deploy.sh   # 固定版本；省略则使用 l
 
 `deploy.sh` 会依次：下载 Release 产物 → 备份 SQLite → 解包到 `releases/<id>/` → 原子切换 `current` 软链 → 重启服务 → 健康检查 `/health`，失败时自动切回上一个版本。首次运行会自动从 `.env.example` 生成 `/opt/sudo4/.env`，上线前请检查其中的 `BACKEND_HOST`、`DATABASE_URL` 等配置。
 
+重启前会检查 systemd 单元是否已安装，缺失时直接报错；本机只想拉取产物时用 `SKIP_RESTART=1` 跳过检查和重启。
+
 常用操作：
 
 ```bash

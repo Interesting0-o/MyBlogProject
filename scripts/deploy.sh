@@ -25,6 +25,14 @@ if [[ ! "$health_attempts" =~ ^[1-9][0-9]*$ ]]; then
   die "HEALTH_ATTEMPTS must be a positive integer"
 fi
 
+if [[ "${SKIP_RESTART:-0}" != "1" ]]; then
+  command -v systemctl >/dev/null 2>&1 || die "systemctl is required unless SKIP_RESTART=1"
+
+  if ! systemctl cat "$service" >/dev/null 2>&1; then
+    die "systemd unit '$service' not found; install deploy/sudo4-api.service, run 'systemctl daemon-reload', or use SKIP_RESTART=1"
+  fi
+fi
+
 as_root() {
   if [[ "$EUID" -eq 0 ]]; then
     "$@"

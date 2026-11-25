@@ -7,7 +7,7 @@ repo_root="$(git -C "$script_dir" rev-parse --show-toplevel)"
 app_root="${APP_ROOT:-/opt/sudo4}"
 app_user="${APP_USER:-sudo4}"
 service="${SYSTEMD_UNIT:-sudo4-api}"
-tag="${RELEASE_TAG:-latest}"
+tag="${1:-${RELEASE_TAG:-latest}}"
 health_url="${HEALTH_URL:-http://127.0.0.1:3000/health}"
 health_attempts="${HEALTH_ATTEMPTS:-20}"
 keep_releases="${KEEP_RELEASES:-5}"
@@ -56,7 +56,7 @@ if [[ -n "$source_dir" ]]; then
 else
   staging="$(mktemp -d)"
   staging_created=1
-  DEST="$staging" RELEASE_TAG="$tag" "$repo_root/scripts/fetch-release.sh"
+  DEST="$staging" "$repo_root/scripts/fetch-release.sh" "$tag"
 fi
 
 [[ -x "$staging/sudo4-api" ]] || die "Artifact is missing an executable sudo4-api"

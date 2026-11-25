@@ -105,7 +105,7 @@ curl -I http://服务器地址/
 ```bash
 cd /srv/MyBlogProject
 git pull --ff-only
-sudo RELEASE_TAG=v0.1.0 ./scripts/deploy.sh   # 固定版本；省略则使用 latest
+sudo ./scripts/deploy.sh v0.1.0   # 固定版本；省略则使用 latest
 ```
 
 ### 目录结构
@@ -128,19 +128,21 @@ sudo RELEASE_TAG=v0.1.0 ./scripts/deploy.sh   # 固定版本；省略则使用 l
 常用操作：
 
 ```bash
-sudo RELEASE_TAG=v0.1.0 ./scripts/deploy.sh   # 固定版本
+sudo ./scripts/deploy.sh v0.1.0               # 固定版本
 sudo APP_ROOT=/srv/sudo4 ./scripts/deploy.sh  # 自定义运行目录
 sudo SKIP_RESTART=1 ./scripts/deploy.sh       # 只拉取并切换，不重启
 ```
 
+受限 sudoers 只允许执行 `deploy.sh` 时，不允许 `sudo VAR=...` 设置环境变量；版本号请用位置参数，其他环境变量需要在 root shell 中设置。
+
 ### 自动部署（可选）
 
-`.github/workflows/deploy.yml` 会在 `Build release artifacts` 针对 `main` 构建成功后，通过 SSH 登录服务器执行 `git pull --ff-only` 和 `sudo RELEASE_TAG=latest ./scripts/deploy.sh`。版本标签可以在 Actions 里手动运行 `Deploy production` 并填写 `tag`。
+`.github/workflows/deploy.yml` 会在 `Build release artifacts` 针对 `main` 构建成功后，通过 SSH 登录服务器执行 `git pull --ff-only` 和 `sudo ./scripts/deploy.sh latest`。版本标签可以在 Actions 里手动运行 `Deploy production` 并填写 `tag`。
 
 仓库需要配置：
 
 - Secrets：`DEPLOY_HOST`、`DEPLOY_USER`、`DEPLOY_KEY`（私钥的 base64 单行文本，`base64 -w0 ~/.ssh/sudo4_deploy`）；可选 `DEPLOY_KNOWN_HOSTS`（`ssh-keyscan -H 服务器地址` 的输出，非 22 端口加 `-p`，用于固定主机指纹）。
-- Variables：`DEPLOY_PATH`（默认 `/srv/MyBlogProject`）、`DEPLOY_PORT`（默认 `22`）。
+- Variables：`DEPLOY_PATH`（默认 `/opt/sudo4`）、`DEPLOY_PORT`（默认 `22`）。如果按快速部署把仓库放在 `/srv/MyBlogProject`，需要把 `DEPLOY_PATH` 设为该路径。
 
 服务器需要已按快速部署初始化，`DEPLOY_USER` 能拉取仓库，并可免密执行部署脚本，例如：
 

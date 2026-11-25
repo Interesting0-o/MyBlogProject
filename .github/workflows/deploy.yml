@@ -101,5 +101,5 @@ jobs:
           tag="$2"
           cd "$deploy_path"
           GIT_TERMINAL_PROMPT=0 git pull --ff-only
-          sudo -n RELEASE_TAG="$tag" ./scripts/deploy.sh
+          sudo -n ./scripts/deploy.sh "$tag"
           REMOTE

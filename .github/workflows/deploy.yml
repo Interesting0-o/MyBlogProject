@@ -1,0 +1,94 @@
+name: Deploy production
+
+on:
+  workflow_run:
+    workflows:
+      - Build release artifacts
+    types:
+      - completed
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag to deploy
+        required: true
+        default: latest
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push' &&
+       github.event.workflow_run.head_branch == 'main')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: production
+
+    steps:
+      - name: Resolve release tag
+        id: release
+        env:
+          INPUT_TAG: ${{ inputs.tag }}
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            tag="$INPUT_TAG"
+          else
+            tag="latest"
+          fi
+          [[ -n "$tag" ]] || { echo "Missing release tag" >&2; exit 1; }
+          [[ "$tag" =~ ^[A-Za-z0-9._/-]+$ ]] || { echo "Invalid release tag: $tag" >&2; exit 1; }
+          printf 'tag=%s\n' "$tag" >> "$GITHUB_OUTPUT"
+
+      - name: Configure SSH
+        env:
+          DEPLOY_KEY: ${{ secrets.DEPLOY_KEY }}
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+          DEPLOY_PORT: ${{ vars.DEPLOY_PORT || '22' }}
+        run: |
+          [[ -n "$DEPLOY_KEY" ]] || { echo "Missing DEPLOY_KEY secret" >&2; exit 1; }
+          [[ -n "$DEPLOY_HOST" ]] || { echo "Missing DEPLOY_HOST secret" >&2; exit 1; }
+
+          install -m 700 -d "$HOME/.ssh"
+          printf '%s\n' "$DEPLOY_KEY" > "$HOME/.ssh/deploy_key"
+          chmod 600 "$HOME/.ssh/deploy_key"
+
+          if [[ -n "$DEPLOY_KNOWN_HOSTS" ]]; then
+            printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
+          else
+            ssh-keyscan -p "$DEPLOY_PORT" -H "$DEPLOY_HOST" >> "$HOME/.ssh/known_hosts"
+          fi
+
+      - name: Deploy over SSH
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_PORT: ${{ vars.DEPLOY_PORT || '22' }}
+          DEPLOY_PATH: ${{ vars.DEPLOY_PATH || '/srv/MyBlogProject' }}
+          RELEASE_TAG: ${{ steps.release.outputs.tag }}
+        run: |
+          [[ -n "$DEPLOY_USER" ]] || { echo "Missing DEPLOY_USER secret" >&2; exit 1; }
+
+          ssh -i "$HOME/.ssh/deploy_key" \
+            -p "$DEPLOY_PORT" \
+            -o BatchMode=yes \
+            -o ConnectTimeout=15 \
+            -o IdentitiesOnly=yes \
+            -o StrictHostKeyChecking=yes \
+            "$DEPLOY_USER@$DEPLOY_HOST" \
+            bash -s -- "$DEPLOY_PATH" "$RELEASE_TAG" <<'REMOTE'
+          set -euo pipefail
+          deploy_path="$1"
+          tag="$2"
+          cd "$deploy_path"
+          GIT_TERMINAL_PROMPT=0 git pull --ff-only
+          sudo -n RELEASE_TAG="$tag" ./scripts/deploy.sh
+          REMOTE

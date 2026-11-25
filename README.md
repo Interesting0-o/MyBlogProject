@@ -133,6 +133,23 @@ sudo APP_ROOT=/srv/sudo4 ./scripts/deploy.sh  # 自定义运行目录
 sudo SKIP_RESTART=1 ./scripts/deploy.sh       # 只拉取并切换，不重启
 ```
 
+### 自动部署（可选）
+
+`.github/workflows/deploy.yml` 会在 `Build release artifacts` 针对 `main` 构建成功后，通过 SSH 登录服务器执行 `git pull --ff-only` 和 `sudo RELEASE_TAG=latest ./scripts/deploy.sh`。版本标签可以在 Actions 里手动运行 `Deploy production` 并填写 `tag`。
+
+仓库需要配置：
+
+- Secrets：`DEPLOY_HOST`、`DEPLOY_USER`、`DEPLOY_KEY`；可选 `DEPLOY_KNOWN_HOSTS`（`ssh-keyscan -H 服务器地址` 的输出，非 22 端口加 `-p`，用于固定主机指纹）。
+- Variables：`DEPLOY_PATH`（默认 `/srv/MyBlogProject`）、`DEPLOY_PORT`（默认 `22`）。
+
+服务器需要已按快速部署初始化，`DEPLOY_USER` 能拉取仓库，并可免密执行部署脚本，例如：
+
+```sudoers
+deploy ALL=(root) NOPASSWD: /srv/MyBlogProject/scripts/deploy.sh
+```
+
+把 `deploy` 和路径换成实际值；如果修改了 `DEPLOY_PATH`，sudoers 里的路径也要同步修改。
+
 热更新语义：
 
 - 文章内容存于 SQLite，通过 API 读取，改内容不需要重新构建或重启。

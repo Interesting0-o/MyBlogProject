@@ -158,7 +158,7 @@ deploy ALL=(root) NOPASSWD: /srv/MyBlogProject/scripts/deploy.sh
 - 前端是静态文件，切换 `current` 后 nginx 立即读取新 `dist/`，无需 reload。
 - 后端需要重启进程，存在秒级中断；要完全零停机需要 blue-green 或多实例加 upstream 切换。
 
-生产环境建议固定 `v*` 标签，而不是使用每次 `main` 推送都会覆盖的 `latest`，也不要依赖开发用的 `post-merge` Hook 自动更新。`KEEP_RELEASES` 和 `KEEP_BACKUPS` 分别控制保留的版本与备份数量（默认 5 和 10）；`DB_PATH`、`HEALTH_URL`、`HEALTH_ATTEMPTS`、`APP_USER` 可按需覆盖。systemd 和 nginx 配置中的 `/opt/sudo4`、`sudo4` 用户、域名需要按实际环境调整。
+生产环境建议固定 `v*` 标签，而不是使用每次 `main` 推送都会覆盖的 `latest`，也不要依赖开发用的 `post-merge` Hook 自动更新。`KEEP_RELEASES` 和 `KEEP_BACKUPS` 分别控制保留的版本与备份数量（默认 5 和 10）；`DB_PATH`、`HEALTH_URL`、`HEALTH_ATTEMPTS` 可按需覆盖。服务用户和用户组默认从 systemd 单元读取，不需要手动设置；确实要覆盖时用 `APP_USER`、`APP_GROUP`。systemd 和 nginx 配置中的 `/opt/sudo4`、`sudo4` 用户、域名需要按实际环境调整。
 
 ## Release 配置
 

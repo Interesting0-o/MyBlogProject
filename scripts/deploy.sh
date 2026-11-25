@@ -5,7 +5,8 @@ script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 repo_root="$(git -C "$script_dir" rev-parse --show-toplevel)"
 
 app_root="${APP_ROOT:-/opt/sudo4}"
-app_user="${APP_USER:-sudo4}"
+app_user="${APP_USER:-}"
+app_group="${APP_GROUP:-}"
 service="${SYSTEMD_UNIT:-sudo4-api}"
 tag="${1:-${RELEASE_TAG:-latest}}"
 health_url="${HEALTH_URL:-http://127.0.0.1:3000/health}"
@@ -24,6 +25,22 @@ die() { printf '[deploy] ERROR: %s\n' "$*" >&2; exit 1; }
 if [[ ! "$health_attempts" =~ ^[1-9][0-9]*$ ]]; then
   die "HEALTH_ATTEMPTS must be a positive integer"
 fi
+
+if [[ -z "$app_user" ]]; then
+  if systemctl cat "$service" >/dev/null 2>&1; then
+    app_user="$(systemctl show -p User --value "$service" 2>/dev/null || true)"
+    app_user="${app_user:-root}"
+    app_group="$(systemctl show -p Group --value "$service" 2>/dev/null || true)"
+  else
+    app_user="sudo4"
+  fi
+fi
+
+if [[ -z "$app_group" && -n "$app_user" ]]; then
+  app_group="$(id -gn "$app_user" 2>/dev/null || printf '%s' "$app_user")"
+fi
+
+log "Service user: $app_user:$app_group"
 
 if [[ "${SKIP_RESTART:-0}" != "1" ]]; then
   command -v systemctl >/dev/null 2>&1 || die "systemctl is required unless SKIP_RESTART=1"
@@ -69,11 +86,13 @@ if [[ ! -f "$app_root/.env" ]]; then
   log "Created $app_root/.env from .env.example; review it before going live."
 fi
 
-if [[ "$EUID" -eq 0 ]] && id -u "$app_user" >/dev/null 2>&1; then
-  chown "$app_user":"$app_user" "$app_root/.env" "$app_root/resource" "$backups_dir"
-  chmod 600 "$app_root/.env"
-elif [[ "$EUID" -eq 0 ]]; then
-  log "Warning: user $app_user does not exist; adjust User= in the systemd unit."
+if [[ "$EUID" -eq 0 ]]; then
+  if id -u "$app_user" >/dev/null 2>&1; then
+    chown "$app_user":"$app_group" "$app_root/.env" "$app_root/resource" "$backups_dir"
+    chmod 600 "$app_root/.env"
+  else
+    log "Warning: user $app_user does not exist; adjust User= in the systemd unit."
+  fi
 fi
 
 resolve_db_path() {

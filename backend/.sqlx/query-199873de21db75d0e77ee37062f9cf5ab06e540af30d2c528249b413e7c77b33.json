@@ -1,0 +1,33 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT status, COUNT(*) AS total FROM comments GROUP BY status",
+  "describe": {
+    "columns": [
+      {
+        "name": "status",
+        "ordinal": 0,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "comments",
+            "name": "status"
+          }
+        }
+      },
+      {
+        "name": "total",
+        "ordinal": 1,
+        "type_info": "Integer",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "199873de21db75d0e77ee37062f9cf5ab06e540af30d2c528249b413e7c77b33"
+}

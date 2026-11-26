@@ -1,0 +1,40 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT post_slug, SUM(CASE WHEN status = 'approved' THEN 1 ELSE 0 END) AS approved, SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) AS pending FROM comments GROUP BY post_slug",
+  "describe": {
+    "columns": [
+      {
+        "name": "post_slug",
+        "ordinal": 0,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "comments",
+            "name": "post_slug"
+          }
+        }
+      },
+      {
+        "name": "approved",
+        "ordinal": 1,
+        "type_info": "Integer",
+        "origin": "Expression"
+      },
+      {
+        "name": "pending",
+        "ordinal": 2,
+        "type_info": "Integer",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "e6d667fda8f433fff47633e92f81cfe9f3d8a16519a58f22bb87a50a0198e47d"
+}

@@ -10,6 +10,10 @@ pub struct Config {
     pub backend_port: u16,
     pub database_url: String,
     pub base_dir: PathBuf,
+    pub admin_username: String,
+    pub admin_password_hash: Option<String>,
+    pub admin_jwt_secret: Option<String>,
+    pub admin_token_hours: i64,
 }
 
 pub static CONFIG: LazyLock<Config> = LazyLock::new(|| {
@@ -25,6 +29,19 @@ pub static CONFIG: LazyLock<Config> = LazyLock::new(|| {
         database_url: env::var("DATABASE_URL")
             .unwrap_or_else(|_| "sqlite://resource/sudo4.db".to_string()),
         base_dir: discover_base_dir(),
+        admin_username: env::var("ADMIN_USERNAME").unwrap_or_else(|_| "admin".to_string()),
+        admin_password_hash: env::var("ADMIN_PASSWORD_HASH")
+            .ok()
+            .map(|value| value.trim().to_string())
+            .filter(|value| !value.is_empty()),
+        admin_jwt_secret: env::var("ADMIN_JWT_SECRET")
+            .ok()
+            .map(|value| value.trim().to_string())
+            .filter(|value| !value.is_empty()),
+        admin_token_hours: env::var("ADMIN_TOKEN_HOURS")
+            .ok()
+            .and_then(|value| value.parse().ok())
+            .unwrap_or(12),
     }
 });
 

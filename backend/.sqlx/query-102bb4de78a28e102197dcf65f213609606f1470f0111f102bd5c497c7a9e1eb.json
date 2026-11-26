@@ -1,0 +1,38 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT key, value FROM site_settings",
+  "describe": {
+    "columns": [
+      {
+        "name": "key",
+        "ordinal": 0,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "site_settings",
+            "name": "key"
+          }
+        }
+      },
+      {
+        "name": "value",
+        "ordinal": 1,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "site_settings",
+            "name": "value"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "102bb4de78a28e102197dcf65f213609606f1470f0111f102bd5c497c7a9e1eb"
+}

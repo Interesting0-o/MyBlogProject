@@ -35,3 +35,8 @@ rustc-ice-*.txt
 
 # Neovim Config
 .nvim
+
+/app
+/app.bak.*
+/dist/
+/data/

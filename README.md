@@ -21,13 +21,53 @@ SQL 使用 SQLx 查询宏做编译期校验，离线元数据在 `backend/.sqlx/
 
 ## 写文章
 
-文章正文使用 Markdown，slug 作为文章 URL，元数据存放在 SQLite 的 `posts` 表中。已发布内容的唯一来源是数据库，前端仓库不再保存文章文件。
+文章正文使用 Markdown，slug 作为文章 URL，元数据存放在 SQLite 的 `posts` 表中。已发布内容的唯一来源是数据库，前端仓库不再保存文章文件。字段包括 `title`、`description`、`published_at`、`updated_at`（可选）、`tags`、`reading_minutes`、`featured`（可选）、`status`（`draft` / `published`）和 `views`；`featured` 为真时会启用首页的精选样式。
 
-现有文章由 `backend/migrations/0002_seed_posts.sql` 写入 SQLite，正文以 Markdown 存储，前端统一用 `marked` 渲染。字段包括 `title`、`description`、`published_at`、`updated_at`（可选）、`tags`、`reading_minutes` 和 `featured`（可选）；`featured` 为真时会启用首页的精选样式。
+后台管理面板位于 `/admin`（子路由：`posts` 文章管理、`compose` 发表/编辑文章、`drafts` 草稿管理、`comments` 评论、`settings` 站点设置、`stats` 统计），数据直接写入 SQLite：
 
-发布页位于 `/#/admin`。当前可以撰写、预览、复制或下载 Markdown，但认证和发布 API 尚未接入，发布按钮保持禁用；在此之前，新增或修改文章需要更新 SQLite 的 `posts` 表。后续计划见 `TODO.md`。
+- 公共 API（`GET /api/posts`、`GET /api/posts/{slug}`）只返回 `status = published` 的文章，草稿对外表现为 404；公开阅读文章详情会累加阅读量。
+- 管理接口：`GET /api/admin/posts`（全部文章，含草稿）、`POST /api/admin/posts`、`GET / PUT / DELETE /api/admin/posts/{slug}`。
+- 阅读时长留空时由后端自动估算（中文约 400 字/分钟，英文约 200 词/分钟）。
 
-关于页的个人资料在 `frontend/src/content/profile.ts` 中维护，头像文件为 `frontend/public/avatar.jpg`，替换文件即可更新。
+现有文章由 `backend/migrations/0002_seed_posts.sql` 写入 SQLite，正文以 Markdown 存储，前端统一用 `marked` 渲染。头像文件为 `frontend/public/avatar.jpg`，替换文件即可更新。
+
+## 后台管理
+
+单管理员认证：账号 + 密码登录，服务端签发 JWT（HS256，默认 12 小时过期）。登录成功后同时写入 HttpOnly + SameSite=Strict 的 `admin_token` Cookie（浏览器端使用）并返回 token（可用 `Authorization: Bearer` 供脚本/CI 调用）。
+
+- 密码使用 bcrypt 校验（`.env` 中的 `ADMIN_PASSWORD_HASH`），不保存明文。
+- 连续 5 次登录失败会锁定账户 15 分钟（内存计数，重启进程即解锁）。
+- 配置 `.env`（模板见 `.env.example`）：
+
+  ```bash
+  # 生成 bcrypt 哈希（值里有 $，写进 .env 时务必用单引号包起来）
+  htpasswd -bnBC 10 "" '你的密码' | tr -d ':\n'
+  # 生成 JWT 签名密钥
+  openssl rand -hex 32
+  ```
+
+  ```dotenv
+  ADMIN_USERNAME=admin
+  ADMIN_PASSWORD_HASH='$2b$10$...'
+  ADMIN_JWT_SECRET='...'
+  ADMIN_TOKEN_HOURS=12
+  ```
+
+未配置 `ADMIN_PASSWORD_HASH` / `ADMIN_JWT_SECRET` 时登录接口返回 503，后台不可用。生产环境务必通过 HTTPS 访问后台，并使用强密码。
+
+## 评论
+
+- 公开接口：`GET /api/posts/{slug}/comments` 返回已审核通过的评论；`POST /api/posts/{slug}/comments` 发表评论，进入待审核状态（作者 ≤ 40 字符，内容 ≤ 1000 字符）。
+- 管理接口：`GET /api/admin/comments?status=pending|approved|rejected|all`、`PATCH /api/admin/comments/{id}`（修改状态）、`DELETE /api/admin/comments/{id}`。
+- 评论采用先审后显；如需反垃圾，建议后续在 nginx 层加限速，或给公开发表接口增加验证码。
+
+## 站点设置
+
+`GET /api/settings` 公开返回站点配置，`GET / PUT /api/admin/settings` 供后台编辑。纯展示类配置采用「结构化 JSON blob」方式持久化：每个展示区块对应一个带固定 schema 的 JSON 对象（`terminalHome` 首页终端卡、`terminalAbout` 关于页 identity 卡、`homeProfile` 首页 PROFILE 卡、`homeNow` 首页 NOW 条目、`aboutNow` / `aboutPrinciples` / `aboutStack` / `aboutSite` 关于页 01–04 区块，以及 `profileLinks`），整块存于 `site_settings` 键值表，后端做长度/数量校验并提供默认值兜底；需要查询、索引或关联的内容（文章、评论）仍使用关系表。首页终端卡与关于页 identity 卡的 whoami 字段结构相同，但各自独立配置。后台设置面板内部分为「基本 / 首页 / 关于页」三个小类。
+
+## 路由
+
+前端使用 HTML5 History 路由（`/`、`/posts/:slug`、`/archive`、`/about`、`/admin/*`），站内跳转由 `pushState` 完成，不会出现 `/#/xxx` 形式。刷新或直接访问深层路径依赖 SPA 回退：生产 nginx 的 `location / { try_files ... /index.html; }`（已内置），开发环境由 Vite 提供。旧的 `/#/xxx` 链接首次进入时会自动迁移为普通路径。
 
 ## 自动构建产物
 
@@ -67,6 +107,8 @@ Git 本身不会在 `clone` / `pull` 时运行构建或下载附件，需要先�
 产物目录在 `.artifacts/`，可通过 `DEST` 修改，通过 `RELEASE_TAG` 指定版本。下载会复用 git 的 `https.proxy`/`http.proxy`（`sudo` 时读取 `SUDO_USER` 的配置），也可以用 `RELEASE_PROXY` 覆盖。
 
 ## 生产部署（热更新）
+
+完整流程、CI 配置、HTTPS 和排障见 [`docs/deployment.md`](docs/deployment.md)。
 
 ### 快速部署
 

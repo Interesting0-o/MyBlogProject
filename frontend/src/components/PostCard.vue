@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import AppLink from '@/components/AppLink.vue'
 import { formatMonthDay } from '@/utils/format'
 import type { Post } from '@/types/blog'
 
@@ -9,7 +10,7 @@ defineProps<{
 
 <template>
   <article class="post-card">
-    <a class="post-link" :href="`#/posts/${post.slug}`">
+    <AppLink class="post-link" :href="`/posts/${post.slug}`">
       <h3 class="post-title" :title="post.title">{{ post.title }}</h3>
 
       <div class="post-meta-row">
@@ -23,7 +24,7 @@ defineProps<{
           <li v-for="tag in post.tags" :key="tag">#{{ tag }}</li>
         </ul>
       </div>
-    </a>
+    </AppLink>
   </article>
 </template>
 

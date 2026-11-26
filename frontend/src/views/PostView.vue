@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import AppLink from '@/components/AppLink.vue'
+import PostComments from '@/components/PostComments.vue'
 import { fetchPosts } from '@/services/posts'
 import type { Post } from '@/types/blog'
 import { formatDate } from '@/utils/format'
@@ -106,10 +108,10 @@ onBeforeUnmount(() => {
     ></div>
 
     <div class="post-container">
-      <a class="back-link" href="#/">
+      <AppLink class="back-link" href="/">
         <span aria-hidden="true">←</span>
         cd /posts
-      </a>
+      </AppLink>
 
       <div v-if="loading" class="post-loading" aria-busy="true">
         <span class="loading-command">❯ cat post.md</span>
@@ -122,14 +124,14 @@ onBeforeUnmount(() => {
         <span class="missing-code">[ERR]</span>
         <h1>文章加载失败</h1>
         <p>数据线路似乎断开了，请稍后再试。</p>
-        <a class="button-link" href="#/">返回首页</a>
+        <AppLink class="button-link" href="/">返回首页</AppLink>
       </div>
 
       <div v-else-if="!currentPost" class="post-missing">
         <span class="missing-code">404</span>
         <h1>这篇文章不见了</h1>
         <p>它可能被移动、重命名，或者从来没有存在过。</p>
-        <a class="button-link" href="#/">cd ~ →</a>
+        <AppLink class="button-link" href="/">cd ~ →</AppLink>
       </div>
 
       <template v-else>
@@ -213,24 +215,26 @@ onBeforeUnmount(() => {
         </div>
 
         <nav class="post-nav" aria-label="文章导航">
-          <a v-if="previousPost" class="post-nav-item" :href="`#/posts/${previousPost.slug}`">
+          <AppLink v-if="previousPost" class="post-nav-item" :href="`/posts/${previousPost.slug}`">
             <span class="post-nav-label">← 较新一篇</span>
             <span class="post-nav-title">{{ previousPost.title }}</span>
-          </a>
+          </AppLink>
           <div v-else class="post-nav-item post-nav-item--empty">
             <span class="post-nav-label">← 较新一篇</span>
             <span class="post-nav-title">已经是最新文章</span>
           </div>
 
-          <a v-if="nextPost" class="post-nav-item post-nav-item--next" :href="`#/posts/${nextPost.slug}`">
+          <AppLink v-if="nextPost" class="post-nav-item post-nav-item--next" :href="`/posts/${nextPost.slug}`">
             <span class="post-nav-label">较早一篇 →</span>
             <span class="post-nav-title">{{ nextPost.title }}</span>
-          </a>
+          </AppLink>
           <div v-else class="post-nav-item post-nav-item--empty post-nav-item--next">
             <span class="post-nav-label">较早一篇 →</span>
             <span class="post-nav-title">已经读到最早一篇</span>
           </div>
         </nav>
+
+        <PostComments :slug="currentPost.slug" />
       </template>
     </div>
   </section>

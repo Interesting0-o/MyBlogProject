@@ -1,3 +1,7 @@
+<script setup lang="ts">
+import AppLink from '@/components/AppLink.vue'
+</script>
+
 <template>
   <section class="not-found-page container">
     <div class="not-found-card">
@@ -17,7 +21,7 @@
         </p>
         <h1>这里什么都没有。</h1>
         <p class="error-copy">你访问的路径可能已经被移动，或者从未存在过。</p>
-        <a class="not-found-link" href="#/">cd ~ →</a>
+        <AppLink class="not-found-link" href="/">cd ~ →</AppLink>
       </div>
     </div>
   </section>

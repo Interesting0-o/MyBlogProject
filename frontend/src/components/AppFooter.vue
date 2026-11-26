@@ -1,18 +1,20 @@
 <script setup lang="ts">
-import { profile } from '@/content/profile'
+import AppLink from '@/components/AppLink.vue'
+import { useSiteSettings } from '@/composables/useSiteSettings'
 import { useTheme } from '@/composables/useTheme'
 
 const year = new Date().getFullYear()
 const { isDark, toggleTheme } = useTheme()
+const { settings } = useSiteSettings()
 
 const navItems = [
-  { label: '首页', href: '#/' },
-  { label: '归档', href: '#/archive' },
-  { label: '关于', href: '#/about' },
-  { label: '发布', href: '#/admin' },
+  { label: '首页', href: '/' },
+  { label: '归档', href: '/archive' },
+  { label: '关于', href: '/about' },
+  { label: '后台', href: '/admin' },
 ]
 
-const contactLinks = profile.links.filter((link) => link.href)
+const contactLinks = settings.value.profileLinks.filter((link) => link.href)
 
 function isExternal(href: string): boolean {
   return href.startsWith('http')
@@ -31,16 +33,16 @@ function scrollToTop() {
   <footer class="site-footer">
     <div class="container footer-main">
       <div class="footer-brand-block">
-        <a class="footer-logo" href="#/" aria-label="sudo4 首页">
+        <AppLink class="footer-logo" href="/" :aria-label="`${settings.siteTitle} 首页`">
           <span aria-hidden="true">❯</span>
-          {{ profile.name }}<span class="footer-cursor" aria-hidden="true">_</span>
-        </a>
-        <p class="footer-tagline">{{ profile.tagline }}</p>
+          {{ settings.siteTitle }}<span class="footer-cursor" aria-hidden="true">_</span>
+        </AppLink>
+        <p class="footer-tagline">{{ settings.profileTagline }}</p>
       </div>
 
       <nav class="footer-column" aria-label="站内导航">
         <span class="footer-heading">SITEMAP</span>
-        <a v-for="item in navItems" :key="item.href" :href="item.href">{{ item.label }}</a>
+        <AppLink v-for="item in navItems" :key="item.href" :href="item.href">{{ item.label }}</AppLink>
       </nav>
 
       <div class="footer-column">

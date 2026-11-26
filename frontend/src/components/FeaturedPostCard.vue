@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import AppLink from '@/components/AppLink.vue'
 import { formatDate } from '@/utils/format'
 import type { Post } from '@/types/blog'
 
@@ -11,7 +12,7 @@ defineProps<{
   <section class="featured-block" aria-labelledby="featured-post-title">
     <span class="featured-kicker">FEATURED</span>
 
-    <a class="featured-card" :href="`#/posts/${post.slug}`">
+    <AppLink class="featured-card" :href="`/posts/${post.slug}`">
       <div class="featured-meta">
         <time :datetime="post.publishedAt">{{ formatDate(post.publishedAt) }}</time>
         <span class="meta-divider" aria-hidden="true">/</span>
@@ -30,7 +31,7 @@ defineProps<{
           <span aria-hidden="true">→</span>
         </span>
       </div>
-    </a>
+    </AppLink>
   </section>
 </template>
 

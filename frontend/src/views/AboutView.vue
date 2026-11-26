@@ -1,10 +1,25 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import ProfileLinkIcon from '@/components/ProfileLinkIcon.vue'
 import ScrollCue from '@/components/ScrollCue.vue'
-import { profile } from '@/content/profile'
+import type { ProfileLinkKind } from '@/content/profile'
+import { useSiteSettings } from '@/composables/useSiteSettings'
+import { renderMarkdown } from '@/utils/markdown'
+
+const { settings } = useSiteSettings()
+
+const aboutHtml = computed(() => renderMarkdown(settings.value.aboutMarkdown))
 
 function isExternal(href: string): boolean {
   return href.startsWith('http')
+}
+
+function linkKind(kind: string): ProfileLinkKind {
+  return (['github', 'bilibili', 'repository', 'email'] as const).includes(
+    kind as ProfileLinkKind,
+  )
+    ? (kind as ProfileLinkKind)
+    : 'repository'
 }
 </script>
 
@@ -15,8 +30,8 @@ function isExternal(href: string): boolean {
         <div class="profile-header">
           <img
             class="profile-avatar"
-            :src="profile.avatar"
-            :alt="`${profile.name} 的头像`"
+            src="/avatar.jpg"
+            :alt="`${settings.profileName} 的头像`"
             width="260"
             height="260"
           />
@@ -24,17 +39,17 @@ function isExternal(href: string): boolean {
           <div class="profile-copy">
             <div class="page-kicker">ABOUT ME</div>
             <h1>
-              <span class="profile-name">{{ profile.name }}</span>
-              <span class="profile-handle">{{ profile.handle }}</span>
+              <span class="profile-name">{{ settings.siteTitle }}</span>
+              <span class="profile-handle">{{ settings.profileHandle }}</span>
             </h1>
-            <p class="profile-tagline">{{ profile.tagline }}</p>
-            <p class="profile-bio">{{ profile.bio }}</p>
+            <p class="profile-tagline">{{ settings.profileTagline }}</p>
+            <p class="profile-bio">{{ settings.profileBio }}</p>
           </div>
         </div>
 
         <div class="profile-links" aria-label="个人链接">
           <a
-            v-for="link in profile.links"
+            v-for="link in settings.profileLinks"
             :key="link.label"
             class="profile-link"
             :class="{ 'profile-link--disabled': !link.href }"
@@ -44,9 +59,8 @@ function isExternal(href: string): boolean {
             :aria-disabled="link.href ? undefined : 'true'"
             :title="link.handle"
           >
-            <ProfileLinkIcon :kind="link.kind" />
+            <ProfileLinkIcon :kind="linkKind(link.kind)" />
             <span>{{ link.label }}</span>
-            <span v-if="!link.href" class="profile-link-pending">待配置</span>
           </a>
         </div>
       </div>
@@ -59,31 +73,31 @@ function isExternal(href: string): boolean {
               <i></i>
               <i></i>
             </span>
-            <span>identity.yml</span>
+            <span>{{ settings.terminalAbout.title }}</span>
           </div>
           <div class="identity-body">
             <p class="identity-command"><span aria-hidden="true">❯</span> whoami</p>
             <p class="identity-output">
-              <span>{{ profile.username }}</span>
-              <span>— {{ profile.role }}</span>
+              <span>{{ settings.terminalAbout.whoamiName }}</span>
+              <span>— {{ settings.terminalAbout.whoamiRole }}</span>
             </p>
             <p class="identity-command"><span aria-hidden="true">❯</span> cat identity.yml</p>
             <dl>
               <div>
                 <dt>focus</dt>
-                <dd>backend &amp; infra</dd>
+                <dd>{{ settings.terminalAbout.focus }}</dd>
               </div>
               <div>
                 <dt>currently</dt>
-                <dd>building this blog</dd>
+                <dd>{{ settings.terminalAbout.currently }}</dd>
               </div>
               <div>
                 <dt>status</dt>
-                <dd class="identity-online"><i aria-hidden="true"></i> online</dd>
+                <dd class="identity-online"><i aria-hidden="true"></i> {{ settings.terminalAbout.status }}</dd>
               </div>
               <div>
                 <dt>since</dt>
-                <dd>2026</dd>
+                <dd>{{ settings.terminalAbout.since }}</dd>
               </div>
             </dl>
             <p class="identity-command identity-caret">
@@ -96,53 +110,35 @@ function isExternal(href: string): boolean {
       <ScrollCue target="about-content" aria-label="滚动到关于内容" />
     </header>
 
-    <div id="about-content" class="about-grid">
+      <div id="about-content" class="about-grid">
       <div class="about-main">
+        <section v-if="aboutHtml" class="about-section">
+          <span class="section-number">00 / INTRO</span>
+          <h2>关于我</h2>
+          <div class="about-markdown" v-html="aboutHtml"></div>
+        </section>
+
         <section class="about-section">
           <span class="section-number">01 / NOW</span>
-          <h2>现在</h2>
-          <p>
-            正在搭建这个博客的前后端，也在重新整理自己的知识库。比起追逐新的工具，更想把已经在用的东西理解得再深一点。
-          </p>
+          <h2>{{ settings.aboutNow.heading }}</h2>
+          <p>{{ settings.aboutNow.description }}</p>
           <ul class="now-list">
-            <li>
-              <span class="now-key">BUILDING</span>
-              <span>MyBlogProject — Rust · Axum · SQLite</span>
-            </li>
-            <li>
-              <span class="now-key">LEARNING</span>
-              <span>数据库内部机制与分布式系统设计</span>
-            </li>
-            <li>
-              <span class="now-key">WRITING</span>
-              <span>工程笔记、系统实践与一些长期问题</span>
+            <li v-for="item in settings.aboutNow.items" :key="item.key">
+              <span class="now-key">{{ item.key }}</span>
+              <span>{{ item.value }}</span>
             </li>
           </ul>
         </section>
 
         <section class="about-section">
           <span class="section-number">02 / PRINCIPLES</span>
-          <h2>我相信的事</h2>
+          <h2>{{ settings.aboutPrinciples.heading }}</h2>
           <ol class="principle-list">
-            <li>
-              <span class="principle-index">01</span>
+            <li v-for="(item, index) in settings.aboutPrinciples.items" :key="item.title">
+              <span class="principle-index">{{ String(index + 1).padStart(2, '0') }}</span>
               <div>
-                <h3>简单优先</h3>
-                <p>能删掉的复杂度就不要留下。清晰的结构本身就是一种性能。</p>
-              </div>
-            </li>
-            <li>
-              <span class="principle-index">02</span>
-              <div>
-                <h3>记录过程</h3>
-                <p>结果会被忘记，过程中的判断和取舍才是可以复用的资产。</p>
-              </div>
-            </li>
-            <li>
-              <span class="principle-index">03</span>
-              <div>
-                <h3>保持好奇</h3>
-                <p>遇到不理解的东西，先停下来弄清楚它为什么存在。</p>
+                <h3>{{ item.title }}</h3>
+                <p>{{ item.description }}</p>
               </div>
             </li>
           </ol>
@@ -150,33 +146,12 @@ function isExternal(href: string): boolean {
 
         <section class="about-section">
           <span class="section-number">03 / STACK</span>
-          <h2>常用工具</h2>
+          <h2>{{ settings.aboutStack.heading }}</h2>
           <div class="stack-groups">
-            <div class="stack-group">
-              <span>LANGUAGES</span>
+            <div v-for="group in settings.aboutStack.groups" :key="group.label" class="stack-group">
+              <span>{{ group.label }}</span>
               <div class="stack-tags">
-                <span>Rust</span>
-                <span>TypeScript</span>
-                <span>SQL</span>
-                <span>Bash</span>
-              </div>
-            </div>
-            <div class="stack-group">
-              <span>SYSTEMS</span>
-              <div class="stack-tags">
-                <span>Linux</span>
-                <span>PostgreSQL</span>
-                <span>Redis</span>
-                <span>Docker</span>
-              </div>
-            </div>
-            <div class="stack-group">
-              <span>DAILY</span>
-              <div class="stack-tags">
-                <span>Neovim</span>
-                <span>tmux</span>
-                <span>Git</span>
-                <span>fzf</span>
+                <span v-for="tag in group.tags" :key="tag">{{ tag }}</span>
               </div>
             </div>
           </div>
@@ -184,12 +159,9 @@ function isExternal(href: string): boolean {
 
         <section class="about-section">
           <span class="section-number">04 / THIS SITE</span>
-          <h2>关于这个站点</h2>
-          <p>
-            这是一个极简的个人空间，用 Vue 3、TypeScript 和 Vite 构建，文章通过 Rust/Axum API 从
-            SQLite 读取。界面保持克制，把注意力留给文字。
-          </p>
-          <blockquote>先让它跑起来，再让它变好。</blockquote>
+          <h2>{{ settings.aboutSite.heading }}</h2>
+          <p>{{ settings.aboutSite.description }}</p>
+          <blockquote>{{ settings.aboutSite.quote }}</blockquote>
         </section>
       </div>
 
@@ -393,6 +365,48 @@ function isExternal(href: string): boolean {
   color: var(--text-muted);
   font-size: var(--text-small);
   line-height: 1.88;
+}
+
+.about-markdown {
+  max-width: 62ch;
+  margin-top: 17px;
+  color: var(--text-muted);
+  font-size: var(--text-small);
+  line-height: 1.88;
+}
+
+.about-markdown :deep(h1),
+.about-markdown :deep(h2) {
+  margin: 1.4em 0 0.5em;
+  color: var(--text);
+  font-size: 1.15rem;
+}
+
+.about-markdown :deep(p) {
+  margin: 0.8em 0;
+}
+
+.about-markdown :deep(a) {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.about-markdown :deep(ul),
+.about-markdown :deep(ol) {
+  display: grid;
+  margin: 0.8em 0;
+  padding-left: 1.4em;
+  gap: 0.3em;
+}
+
+.about-markdown :deep(code) {
+  padding: 0.12em 0.36em;
+  border-radius: 4px;
+  color: var(--accent);
+  background: var(--accent-soft);
+  font-family: var(--font-mono);
+  font-size: 0.86em;
 }
 
 .section-number {

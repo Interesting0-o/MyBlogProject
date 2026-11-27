@@ -20,7 +20,7 @@ const documentTitles: Record<Route['name'], string> = {
   post: '文章 · sudo4',
   archive: '归档 · sudo4',
   about: '关于 · sudo4',
-  admin: '发布 · sudo4',
+  admin: '后台 · sudo4',
   'not-found': '404 · sudo4',
 }
 
@@ -72,7 +72,7 @@ onBeforeUnmount(() => {
         />
         <ArchiveView v-else-if="route.name === 'archive'" key="archive" />
         <AboutView v-else-if="route.name === 'about'" key="about" />
-        <AdminView v-else-if="route.name === 'admin'" key="admin" />
+        <AdminView v-else-if="route.name === 'admin'" key="admin" :tab="route.tab" />
         <NotFoundView v-else key="not-found" />
       </Transition>
     </main>

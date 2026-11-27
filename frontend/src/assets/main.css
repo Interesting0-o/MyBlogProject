@@ -30,6 +30,9 @@
   --accent-soft: rgba(13, 148, 136, 0.09);
   --accent-line: rgba(15, 118, 110, 0.28);
   --accent-glow: rgba(13, 148, 136, 0.11);
+  --danger: #b91c1c;
+  --danger-soft: rgba(185, 28, 28, 0.08);
+  --danger-line: rgba(185, 28, 28, 0.32);
   --ambient-primary: rgba(13, 148, 136, 0.22);
   --ambient-glow: radial-gradient(
     ellipse at center,
@@ -73,6 +76,9 @@
   --accent-soft: rgba(45, 212, 191, 0.08);
   --accent-line: rgba(45, 212, 191, 0.3);
   --accent-glow: rgba(45, 212, 191, 0.09);
+  --danger: #f87171;
+  --danger-soft: rgba(248, 113, 113, 0.09);
+  --danger-line: rgba(248, 113, 113, 0.32);
   --ambient-primary: rgba(45, 212, 191, 0.2);
   --gradient-accent-a: #5eead4;
   --gradient-accent-b: #22d3ee;
@@ -232,6 +238,10 @@ svg {
   margin-inline: auto;
 }
 
+.container--wide {
+  width: min(1560px, calc(100% - 64px));
+}
+
 .sr-only {
   position: absolute;
   width: 1px;
@@ -298,6 +308,10 @@ svg {
 @media (max-width: 720px) {
   .container {
     width: min(100% - 48px, 1120px);
+  }
+
+  .container--wide {
+    width: min(100% - 40px, 1560px);
   }
 }
 

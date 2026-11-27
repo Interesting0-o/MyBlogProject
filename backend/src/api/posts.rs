@@ -5,13 +5,12 @@ use axum::{
 use serde::Serialize;
 
 use super::error::ApiError;
-use crate::domain::post::Post;
-use crate::service::post::PostService;
+use super::state::AppState;
+use crate::domain::post::{Post, PostStatus};
+use crate::service::post as post_service;
 
-pub(super) async fn list(
-    State(service): State<PostService>,
-) -> Result<Json<PostsResponse>, ApiError> {
-    let posts = service.list_posts().await?;
+pub(super) async fn list(State(state): State<AppState>) -> Result<Json<PostsResponse>, ApiError> {
+    let posts = post_service::list_posts(state.db.as_ref(), Some(PostStatus::Published)).await?;
 
     Ok(Json(PostsResponse {
         posts: posts.into_iter().map(PostResponse::from).collect(),
@@ -19,16 +18,16 @@ pub(super) async fn list(
 }
 
 pub(super) async fn get(
-    State(service): State<PostService>,
+    State(state): State<AppState>,
     Path(slug): Path<String>,
 ) -> Result<Json<PostResponse>, ApiError> {
-    let post = service.get_post(&slug).await?;
+    let post = post_service::get_published_post_with_view(state.db.as_ref(), &slug).await?;
     Ok(Json(PostResponse::from(post)))
 }
 
 #[derive(Serialize)]
 pub(super) struct PostsResponse {
-    posts: Vec<PostResponse>,
+    pub(super) posts: Vec<PostResponse>,
 }
 
 #[derive(Serialize)]
@@ -43,6 +42,8 @@ pub(super) struct PostResponse {
     tags: Vec<String>,
     reading_minutes: u32,
     featured: bool,
+    status: String,
+    views: u32,
     content: String,
 }
 
@@ -57,6 +58,8 @@ impl From<Post> for PostResponse {
             tags: post.tags,
             reading_minutes: post.reading_minutes,
             featured: post.featured,
+            status: post.status.as_str().to_string(),
+            views: post.views,
             content: post.content,
         }
     }

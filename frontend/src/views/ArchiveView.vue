@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import AppLink from '@/components/AppLink.vue'
 import { computed, onMounted, ref } from 'vue'
 import { fetchPosts } from '@/services/posts'
 import type { Post } from '@/types/blog'
@@ -77,7 +78,7 @@ onMounted(loadPosts)
             v-for="post in group.entries"
             :key="post.slug"
             class="archive-row"
-            :href="`#/posts/${post.slug}`"
+            :href="`/posts/${post.slug}`"
           >
             <time :datetime="post.publishedAt">{{ formatMonthDay(post.publishedAt) }}</time>
             <span class="archive-title" :title="post.title">{{ post.title }}</span>
@@ -86,10 +87,10 @@ onMounted(loadPosts)
       </section>
     </div>
 
-    <a class="archive-back" href="#/">
+    <AppLink class="archive-back" href="/">
       <span aria-hidden="true">←</span>
       cd ~
-    </a>
+    </AppLink>
   </section>
 </template>
 

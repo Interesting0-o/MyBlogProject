@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE posts SET views = views + 1 WHERE slug = ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "5485d5ee21bba58813d9fad8f9f0ed0516c041b5a47fca3b81dd90229f8198ac"
+}

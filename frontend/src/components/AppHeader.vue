@@ -1,15 +1,18 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import AppLink from '@/components/AppLink.vue'
 import { useRoute } from '@/composables/useRoute'
+import { useSiteSettings } from '@/composables/useSiteSettings'
 import { useTheme } from '@/composables/useTheme'
 
 const { route } = useRoute()
 const { isDark, toggleTheme } = useTheme()
+const { settings } = useSiteSettings()
 
 const navItems = [
-  { index: '01', label: '首页', routeName: 'home', href: '#/' },
-  { index: '02', label: '归档', routeName: 'archive', href: '#/archive' },
-  { index: '03', label: '关于', routeName: 'about', href: '#/about' },
+  { index: '01', label: '首页', routeName: 'home', href: '/' },
+  { index: '02', label: '归档', routeName: 'archive', href: '/archive' },
+  { index: '03', label: '关于', routeName: 'about', href: '/about' },
 ] as const
 
 const activeRoute = computed(() => route.value.name)
@@ -18,14 +21,14 @@ const activeRoute = computed(() => route.value.name)
 <template>
   <header class="site-header">
     <div class="container header-inner">
-      <a class="brand" href="#/" aria-label="sudo4 首页">
+      <AppLink class="brand" href="/" :aria-label="`${settings.siteTitle} 首页`">
         <span class="brand-mark" aria-hidden="true">❯</span>
-        <span>sudo4</span>
+        <span>{{ settings.siteTitle }}</span>
         <span class="brand-cursor" aria-hidden="true">_</span>
-      </a>
+      </AppLink>
 
       <nav class="site-nav" aria-label="主导航">
-        <a
+        <AppLink
           v-for="item in navItems"
           :key="item.routeName"
           :href="item.href"
@@ -34,7 +37,7 @@ const activeRoute = computed(() => route.value.name)
         >
           <span class="nav-index">{{ item.index }}</span>
           <span>{{ item.label }}</span>
-        </a>
+        </AppLink>
       </nav>
 
       <div class="header-actions">

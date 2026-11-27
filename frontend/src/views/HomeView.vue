@@ -1,12 +1,16 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import AppLink from '@/components/AppLink.vue'
 import FeaturedPostCard from '@/components/FeaturedPostCard.vue'
 import PostCard from '@/components/PostCard.vue'
 import ScrollCue from '@/components/ScrollCue.vue'
+import { useSiteSettings } from '@/composables/useSiteSettings'
 import { profile } from '@/content/profile'
 import { fetchPosts } from '@/services/posts'
 import type { Post } from '@/types/blog'
 import { isTypingTarget } from '@/utils/dom'
+
+const { settings } = useSiteSettings()
 
 const posts = ref<Post[]>([])
 const loading = ref(true)
@@ -141,10 +145,10 @@ onBeforeUnmount(() => {
             浏览文章
             <span aria-hidden="true">↓</span>
           </button>
-          <a class="button button--ghost" href="#/about">
-            关于我
+          <AppLink class="button button--ghost" href="/about">
+              关于我
             <span aria-hidden="true">↗</span>
-          </a>
+          </AppLink>
         </div>
 
         <dl class="hero-stats">
@@ -166,32 +170,32 @@ onBeforeUnmount(() => {
             <i></i>
             <i></i>
           </span>
-          <span class="terminal-title">visitor@sudo4: ~</span>
-          <span class="terminal-shell">zsh</span>
+          <span class="terminal-title">{{ settings.terminalHome.title }}</span>
+          <span class="terminal-shell">{{ settings.terminalHome.shell }}</span>
         </div>
 
         <div class="terminal-body">
           <div class="terminal-block">
             <p class="terminal-line"><span class="prompt">❯</span> whoami</p>
             <p class="terminal-output terminal-output--identity">
-              <span>{{ profile.username }}</span>
-              <span>— backend / infra / writing</span>
+              <span>{{ settings.terminalHome.whoamiName }}</span>
+              <span>— {{ settings.terminalHome.whoamiRole }}</span>
             </p>
           </div>
 
           <div class="terminal-block">
             <p class="terminal-line"><span class="prompt">❯</span> git log --oneline -3</p>
             <div v-if="recentPosts.length" class="terminal-log">
-              <a
+              <AppLink
                 v-for="post in recentPosts"
                 :key="post.slug"
                 class="terminal-log-line"
-                :href="`#/posts/${post.slug}`"
+                :href="`/posts/${post.slug}`"
                 :title="post.title"
               >
                 <span class="terminal-log-hash">{{ shortHash(post.slug) }}</span>
                 <span class="terminal-log-title">{{ post.title }}</span>
-              </a>
+              </AppLink>
             </div>
             <p v-else class="terminal-log-empty">
               {{ loadError ? 'connection lost' : loading ? 'loading…' : 'no commits yet' }}
@@ -205,8 +209,8 @@ onBeforeUnmount(() => {
         </div>
 
         <div class="terminal-footer">
-          <span>UTF-8</span>
-          <span>git:main</span>
+          <span>{{ settings.terminalHome.footerLeft }}</span>
+          <span>{{ settings.terminalHome.footerRight }}</span>
         </div>
       </aside>
 
@@ -327,10 +331,10 @@ onBeforeUnmount(() => {
           />
         </div>
 
-        <a v-if="!loading && !loadError" class="archive-link" href="#/archive">
+        <AppLink v-if="!loading && !loadError" class="archive-link" href="/archive">
           查看全部文章
           <span aria-hidden="true">→</span>
-        </a>
+        </AppLink>
       </div>
 
       <aside class="sidebar">
@@ -339,27 +343,23 @@ onBeforeUnmount(() => {
           <div class="side-profile">
             <span class="side-avatar" aria-hidden="true">❯_</span>
             <div>
-              <strong>{{ profile.username }}</strong>
-              <span>builder / writer</span>
+              <strong>{{ settings.homeProfile.username }}</strong>
+              <span>{{ settings.homeProfile.role }}</span>
             </div>
           </div>
-          <p>后端工程师。喜欢把系统拆开、修好，再用文字记录整个过程。</p>
-          <a class="text-link" href="#/about">
+          <p>{{ settings.homeProfile.bio }}</p>
+          <AppLink class="text-link" href="/about">
             cat about.md
             <span aria-hidden="true">↗</span>
-          </a>
+          </AppLink>
         </section>
 
         <section class="side-card">
           <span class="side-label">NOW</span>
           <ul class="now-list">
-            <li>
-              <span>building</span>
-              <strong>MyBlogProject</strong>
-            </li>
-            <li>
-              <span>reading</span>
-              <strong>DDIA</strong>
+            <li v-for="item in settings.homeNow.items" :key="item.key">
+              <span>{{ item.key }}</span>
+              <strong>{{ item.value }}</strong>
             </li>
           </ul>
         </section>

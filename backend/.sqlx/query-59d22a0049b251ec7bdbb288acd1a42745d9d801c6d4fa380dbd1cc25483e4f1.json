@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT slug, title, description, published_at, updated_at, tags, reading_minutes, featured, content FROM posts WHERE slug = ? LIMIT 1",
+  "query": "SELECT slug, title, description, published_at, updated_at, tags, reading_minutes, featured, status, views, content FROM posts WHERE status = ? ORDER BY published_at DESC, slug ASC",
   "describe": {
     "columns": [
       {
@@ -92,8 +92,30 @@
         }
       },
       {
-        "name": "content",
+        "name": "status",
         "ordinal": 8,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "posts",
+            "name": "status"
+          }
+        }
+      },
+      {
+        "name": "views",
+        "ordinal": 9,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "posts",
+            "name": "views"
+          }
+        }
+      },
+      {
+        "name": "content",
+        "ordinal": 10,
         "type_info": "Text",
         "origin": {
           "Table": {
@@ -115,8 +137,10 @@
       false,
       false,
       false,
+      false,
+      false,
       false
     ]
   },
-  "hash": "9512abd87eb477947d9c48ecef06a03026641194fb630a44359b654c7212cf53"
+  "hash": "59d22a0049b251ec7bdbb288acd1a42745d9d801c6d4fa380dbd1cc25483e4f1"
 }

@@ -2,7 +2,6 @@
 import { onMounted, ref } from 'vue'
 import AdminCommentsPanel from '@/components/admin/AdminCommentsPanel.vue'
 import AdminComposePanel from '@/components/admin/AdminComposePanel.vue'
-import AdminDraftsPanel from '@/components/admin/AdminDraftsPanel.vue'
 import AdminLogin from '@/components/admin/AdminLogin.vue'
 import AdminPostsPanel from '@/components/admin/AdminPostsPanel.vue'
 import AdminSettingsPanel from '@/components/admin/AdminSettingsPanel.vue'
@@ -38,17 +37,15 @@ async function handleLogout() {
     <p class="checking">检查登录状态…</p>
   </section>
 
-  <AdminShell v-else :tab="props.tab">
-    <template #nav-footer>
-      <button class="logout-button" type="button" @click="handleLogout">退出登录</button>
-    </template>
-
-    <AdminPostsPanel v-if="props.tab === 'posts'" />
+  <AdminShell v-else :tab="props.tab" @logout="handleLogout">
+    <AdminPostsPanel
+      v-if="props.tab === 'posts' || props.tab === 'drafts'"
+      :initial-filter="props.tab === 'drafts' ? 'draft' : 'all'"
+    />
     <AdminComposePanel v-else-if="props.tab === 'compose'" />
-    <AdminDraftsPanel v-else-if="props.tab === 'drafts'" />
     <AdminCommentsPanel v-else-if="props.tab === 'comments'" />
-    <AdminSettingsPanel v-else-if="props.tab === 'settings'" />
-    <AdminStatsPanel v-else />
+    <AdminStatsPanel v-else-if="props.tab === 'stats'" />
+    <AdminSettingsPanel v-else />
   </AdminShell>
 </template>
 
@@ -60,21 +57,5 @@ async function handleLogout() {
   font-size: var(--text-small);
 }
 
-.logout-button {
-  padding: 0.55rem 0.75rem;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  color: var(--danger);
-  background: var(--surface);
-  font-family: var(--font-mono);
-  font-size: var(--text-label);
-  transition:
-    border-color 0.2s ease,
-    background-color 0.2s ease;
-}
 
-.logout-button:hover {
-  border-color: var(--danger-line);
-  background: var(--danger-soft);
-}
 </style>

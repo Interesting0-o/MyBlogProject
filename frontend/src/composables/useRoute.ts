@@ -21,6 +21,7 @@ let initialized = false
 
 function parseAdminTab(tab: string): AdminTab {
   switch (tab) {
+    case 'posts':
     case 'compose':
     case 'drafts':
     case 'comments':
@@ -28,7 +29,8 @@ function parseAdminTab(tab: string): AdminTab {
     case 'stats':
       return tab
     default:
-      return 'posts'
+      // /admin 默认进入统计页
+      return 'stats'
   }
 }
 

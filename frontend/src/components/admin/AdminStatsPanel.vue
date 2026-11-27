@@ -54,8 +54,30 @@ onMounted(load)
       <section class="admin-panel">
         <div class="panel-heading table-heading">
           <span>POSTS · 阅读与评论</span>
-          <button class="action action--secondary action--small" type="button" :disabled="loading" @click="load">
-            刷新
+          <button
+            class="icon-button"
+            type="button"
+            title="刷新"
+            aria-label="刷新数据"
+            :disabled="loading"
+            @click="load"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              width="15"
+              height="15"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M3 12a9 9 0 0 1 15.3-6.4L21 8" />
+              <path d="M21 3v5h-5" />
+              <path d="M21 12a9 9 0 0 1-15.3 6.4L3 16" />
+              <path d="M3 21v-5h5" />
+            </svg>
           </button>
         </div>
 
@@ -100,9 +122,13 @@ onMounted(load)
 <style scoped>
 .stat-cards {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr));
   gap: 0.75rem;
   margin-bottom: 1.5rem;
+}
+
+.stats-wrap {
+  min-width: 0;
 }
 
 .stat-card {
@@ -149,6 +175,33 @@ onMounted(load)
   font-family: var(--font-mono);
   font-size: var(--text-label);
   background: var(--surface-soft);
+}
+
+.icon-button {
+  display: grid;
+  width: 2.1rem;
+  height: 2.1rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--text-muted);
+  background: var(--surface);
+  transition:
+    color 0.2s ease,
+    border-color 0.2s ease,
+    background-color 0.2s ease;
+}
+
+.icon-button:hover:not(:disabled) {
+  border-color: var(--accent-line);
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.icon-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
 }
 
 .panel-state {
@@ -216,10 +269,13 @@ onMounted(load)
 }
 
 .status-badge {
+  display: inline-flex;
+  align-items: center;
   padding: 0.15rem 0.45rem;
   border-radius: 4px;
   font-family: var(--font-mono);
   font-size: var(--text-label);
+  white-space: nowrap;
 }
 
 .status-badge--published {
@@ -240,8 +296,17 @@ onMounted(load)
 }
 
 @media (max-width: 720px) {
-  .stat-cards {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .stat-table th,
+  .stat-table td {
+    padding: 0.6rem 0.75rem;
+  }
+
+  .post-title {
+    max-width: 10rem;
+  }
+
+  .comment-summary {
+    line-height: 1.8;
   }
 }
 </style>

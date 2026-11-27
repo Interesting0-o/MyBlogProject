@@ -7,12 +7,10 @@ use serde::Serialize;
 use super::error::ApiError;
 use super::state::AppState;
 use crate::domain::post::{Post, PostStatus};
+use crate::service::post as post_service;
 
 pub(super) async fn list(State(state): State<AppState>) -> Result<Json<PostsResponse>, ApiError> {
-    let posts = state
-        .posts
-        .list_posts(Some(PostStatus::Published))
-        .await?;
+    let posts = post_service::list_posts(state.db.as_ref(), Some(PostStatus::Published)).await?;
 
     Ok(Json(PostsResponse {
         posts: posts.into_iter().map(PostResponse::from).collect(),
@@ -23,7 +21,7 @@ pub(super) async fn get(
     State(state): State<AppState>,
     Path(slug): Path<String>,
 ) -> Result<Json<PostResponse>, ApiError> {
-    let post = state.posts.get_published_post_with_view(&slug).await?;
+    let post = post_service::get_published_post_with_view(state.db.as_ref(), &slug).await?;
     Ok(Json(PostResponse::from(post)))
 }
 

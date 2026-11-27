@@ -17,30 +17,26 @@ pub struct SqlitePostRepository<'a> {
 impl PostRepository for SqlitePostRepository<'_> {
     async fn list(&mut self, status: Option<PostStatus>) -> Result<Vec<Post>, RepositoryError> {
         let rows = match status {
-            Some(status) => {
-                sqlx::query_as!(
-                    PostRow,
-                    "SELECT slug, title, description, published_at, updated_at, tags, \
+            Some(status) => sqlx::query_as!(
+                PostRow,
+                "SELECT slug, title, description, published_at, updated_at, tags, \
                      reading_minutes, featured, status, views, content FROM posts \
                      WHERE status = ? \
                      ORDER BY published_at DESC, slug ASC",
-                    status.as_str(),
-                )
-                .fetch_all(&mut **self.transaction)
-                .await
-                .map_err(map_sqlx_error)?
-            }
-            None => {
-                sqlx::query_as!(
-                    PostRow,
-                    "SELECT slug, title, description, published_at, updated_at, tags, \
+                status.as_str(),
+            )
+            .fetch_all(&mut **self.transaction)
+            .await
+            .map_err(map_sqlx_error)?,
+            None => sqlx::query_as!(
+                PostRow,
+                "SELECT slug, title, description, published_at, updated_at, tags, \
                      reading_minutes, featured, status, views, content FROM posts \
                      ORDER BY published_at DESC, slug ASC",
-                )
-                .fetch_all(&mut **self.transaction)
-                .await
-                .map_err(map_sqlx_error)?
-            }
+            )
+            .fetch_all(&mut **self.transaction)
+            .await
+            .map_err(map_sqlx_error)?,
         };
 
         rows.into_iter().map(Post::try_from).collect()
@@ -159,9 +155,8 @@ impl TryFrom<PostRow> for Post {
             )));
         }
 
-        let views = u32::try_from(row.views).map_err(|_| {
-            RepositoryError::InvalidData(format!("invalid views for {}", row.slug))
-        })?;
+        let views = u32::try_from(row.views)
+            .map_err(|_| RepositoryError::InvalidData(format!("invalid views for {}", row.slug)))?;
 
         let tags = serde_json::from_str::<Vec<String>>(&row.tags).map_err(|error| {
             RepositoryError::InvalidData(format!("invalid tags for {}: {error}", row.slug))

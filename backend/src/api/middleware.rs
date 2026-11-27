@@ -9,7 +9,7 @@ use axum::{
 };
 use serde_json::json;
 
-use crate::service::auth::AuthError;
+use crate::service::auth::{self, AuthError};
 
 use super::state::AppState;
 
@@ -43,7 +43,7 @@ pub(super) async fn require_admin(
         return unauthorized();
     };
 
-    match state.auth.verify_token(&token) {
+    match auth::verify_token(&token) {
         Ok(_admin) => next.run(request).await,
         Err(AuthError::NotConfigured) => (
             StatusCode::SERVICE_UNAVAILABLE,

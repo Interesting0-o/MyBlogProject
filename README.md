@@ -17,7 +17,7 @@ cd backend && cargo run
 
 SQL 使用 SQLx 查询宏做编译期校验，离线元数据在 `backend/.sqlx/`。修改 SQL 后需要在 `backend/` 下执行 `DATABASE_URL=sqlite://../resource/sudo4.db cargo sqlx prepare` 并提交更新后的 `.sqlx/`。
 
-后端请求日志默认输出 `sudo4_api=info`，可用 `RUST_LOG=debug cargo run` 调整级别。
+后端日志级别由 `.env` 中的 `RUST_LOG` 控制（tracing EnvFilter 语法，如 `sudo4_api=debug`）。未设置时：debug 构建输出全部日志，release 构建只保留 warning 及以上（生产环境请求日志默认静默，需要时在 `.env` 中显式打开）。
 
 ## 写文章
 

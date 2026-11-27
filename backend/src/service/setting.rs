@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
@@ -179,7 +177,8 @@ impl Default for AboutPrinciplesCard {
             items: vec![
                 AboutPrincipleItem {
                     title: "简单优先".to_string(),
-                    description: "能删掉的复杂度就不要留下。清晰的结构本身就是一种性能。".to_string(),
+                    description: "能删掉的复杂度就不要留下。清晰的结构本身就是一种性能。"
+                        .to_string(),
                 },
                 AboutPrincipleItem {
                     title: "记录过程".to_string(),
@@ -322,335 +321,322 @@ impl Default for SiteSettings {
     }
 }
 
-#[derive(Clone)]
-pub struct SettingService {
-    unit_of_work_factory: Arc<dyn UnitOfWorkFactory>,
+pub async fn get(factory: &dyn UnitOfWorkFactory) -> Result<SiteSettings, SettingServiceError> {
+    let mut unit_of_work = factory.begin().await?;
+    let pairs = unit_of_work.settings().get_all().await?;
+    unit_of_work.commit().await?;
+    Ok(build(pairs))
 }
 
-impl SettingService {
-    pub fn new(unit_of_work_factory: Arc<dyn UnitOfWorkFactory>) -> Self {
-        Self {
-            unit_of_work_factory,
+pub async fn update(
+    factory: &dyn UnitOfWorkFactory,
+    settings: &SiteSettings,
+) -> Result<SiteSettings, SettingServiceError> {
+    validate(settings)?;
+
+    let mut unit_of_work = factory.begin().await?;
+
+    {
+        let mut repository = unit_of_work.settings();
+
+        repository
+            .set("site_title", settings.site_title.trim())
+            .await?;
+        repository
+            .set("site_tagline", settings.site_tagline.trim())
+            .await?;
+        repository
+            .set("profile_name", settings.profile_name.trim())
+            .await?;
+        repository
+            .set("profile_handle", settings.profile_handle.trim())
+            .await?;
+        repository
+            .set("profile_tagline", settings.profile_tagline.trim())
+            .await?;
+        repository
+            .set("profile_bio", settings.profile_bio.trim())
+            .await?;
+        repository
+            .set(
+                "profile_links",
+                &serde_json::to_string(&settings.profile_links)
+                    .map_err(|error| SettingServiceError::Validation(error.to_string()))?,
+            )
+            .await?;
+        repository
+            .set("about_markdown", &settings.about_markdown)
+            .await?;
+        repository
+            .set(
+                "terminal_home",
+                &serde_json::to_string(&settings.terminal_home)
+                    .map_err(|error| SettingServiceError::Validation(error.to_string()))?,
+            )
+            .await?;
+        repository
+            .set(
+                "terminal_about",
+                &serde_json::to_string(&settings.terminal_about)
+                    .map_err(|error| SettingServiceError::Validation(error.to_string()))?,
+            )
+            .await?;
+        repository
+            .set(
+                "home_profile",
+                &serde_json::to_string(&settings.home_profile)
+                    .map_err(|error| SettingServiceError::Validation(error.to_string()))?,
+            )
+            .await?;
+        repository
+            .set(
+                "home_now",
+                &serde_json::to_string(&settings.home_now)
+                    .map_err(|error| SettingServiceError::Validation(error.to_string()))?,
+            )
+            .await?;
+        repository
+            .set(
+                "about_now",
+                &serde_json::to_string(&settings.about_now)
+                    .map_err(|error| SettingServiceError::Validation(error.to_string()))?,
+            )
+            .await?;
+        repository
+            .set(
+                "about_principles",
+                &serde_json::to_string(&settings.about_principles)
+                    .map_err(|error| SettingServiceError::Validation(error.to_string()))?,
+            )
+            .await?;
+        repository
+            .set(
+                "about_stack",
+                &serde_json::to_string(&settings.about_stack)
+                    .map_err(|error| SettingServiceError::Validation(error.to_string()))?,
+            )
+            .await?;
+        repository
+            .set(
+                "about_site",
+                &serde_json::to_string(&settings.about_site)
+                    .map_err(|error| SettingServiceError::Validation(error.to_string()))?,
+            )
+            .await?;
+    }
+
+    unit_of_work.commit().await?;
+
+    get(factory).await
+}
+
+fn build(pairs: Vec<(String, String)>) -> SiteSettings {
+    let mut settings = SiteSettings::default();
+
+    for (key, value) in pairs {
+        match key.as_str() {
+            "site_title" if !value.is_empty() => settings.site_title = value,
+            "site_tagline" => settings.site_tagline = value,
+            "profile_name" if !value.is_empty() => settings.profile_name = value,
+            "profile_handle" => settings.profile_handle = value,
+            "profile_tagline" => settings.profile_tagline = value,
+            "profile_bio" => settings.profile_bio = value,
+            "profile_links" => {
+                if let Ok(links) = serde_json::from_str::<Vec<ProfileLink>>(&value) {
+                    settings.profile_links = links;
+                }
+            }
+            "about_markdown" => settings.about_markdown = value,
+            "terminal_home" => {
+                if let Ok(card) = serde_json::from_str::<TerminalHomeCard>(&value) {
+                    settings.terminal_home = card;
+                }
+            }
+            "terminal_about" => {
+                if let Ok(card) = serde_json::from_str::<TerminalAboutCard>(&value) {
+                    settings.terminal_about = card;
+                }
+            }
+            "home_profile" => {
+                if let Ok(card) = serde_json::from_str::<HomeProfileCard>(&value) {
+                    settings.home_profile = card;
+                }
+            }
+            "home_now" => {
+                if let Ok(card) = serde_json::from_str::<HomeNowCard>(&value) {
+                    settings.home_now = card;
+                }
+            }
+            "about_now" => {
+                if let Ok(card) = serde_json::from_str::<AboutNowCard>(&value) {
+                    settings.about_now = card;
+                }
+            }
+            "about_principles" => {
+                if let Ok(card) = serde_json::from_str::<AboutPrinciplesCard>(&value) {
+                    settings.about_principles = card;
+                }
+            }
+            "about_stack" => {
+                if let Ok(card) = serde_json::from_str::<AboutStackCard>(&value) {
+                    settings.about_stack = card;
+                }
+            }
+            "about_site" => {
+                if let Ok(card) = serde_json::from_str::<AboutSiteCard>(&value) {
+                    settings.about_site = card;
+                }
+            }
+            _ => {}
         }
     }
 
-    pub async fn get(&self) -> Result<SiteSettings, SettingServiceError> {
-        let mut unit_of_work = self.unit_of_work_factory.begin().await?;
-        let pairs = unit_of_work.settings().get_all().await?;
-        unit_of_work.commit().await?;
-        Ok(Self::build(pairs))
+    settings
+}
+
+fn validate(settings: &SiteSettings) -> Result<(), SettingServiceError> {
+    if settings.site_title.trim().is_empty() {
+        return Err(SettingServiceError::Validation(
+            "site_title is required".to_string(),
+        ));
     }
 
-    pub async fn update(
-        &self,
-        settings: &SiteSettings,
-    ) -> Result<SiteSettings, SettingServiceError> {
-        self.validate(settings)?;
-
-        let mut unit_of_work = self.unit_of_work_factory.begin().await?;
-
-        {
-            let mut repository = unit_of_work.settings();
-
-            repository
-                .set("site_title", settings.site_title.trim())
-                .await?;
-            repository
-                .set("site_tagline", settings.site_tagline.trim())
-                .await?;
-            repository
-                .set("profile_name", settings.profile_name.trim())
-                .await?;
-            repository
-                .set("profile_handle", settings.profile_handle.trim())
-                .await?;
-            repository
-                .set("profile_tagline", settings.profile_tagline.trim())
-                .await?;
-            repository
-                .set("profile_bio", settings.profile_bio.trim())
-                .await?;
-            repository
-                .set(
-                    "profile_links",
-                    &serde_json::to_string(&settings.profile_links)
-                        .map_err(|error| SettingServiceError::Validation(error.to_string()))?,
-                )
-                .await?;
-            repository
-                .set("about_markdown", &settings.about_markdown)
-                .await?;
-            repository
-                .set(
-                    "terminal_home",
-                    &serde_json::to_string(&settings.terminal_home)
-                        .map_err(|error| SettingServiceError::Validation(error.to_string()))?,
-                )
-                .await?;
-            repository
-                .set(
-                    "terminal_about",
-                    &serde_json::to_string(&settings.terminal_about)
-                        .map_err(|error| SettingServiceError::Validation(error.to_string()))?,
-                )
-                .await?;
-            repository
-                .set(
-                    "home_profile",
-                    &serde_json::to_string(&settings.home_profile)
-                        .map_err(|error| SettingServiceError::Validation(error.to_string()))?,
-                )
-                .await?;
-            repository
-                .set(
-                    "home_now",
-                    &serde_json::to_string(&settings.home_now)
-                        .map_err(|error| SettingServiceError::Validation(error.to_string()))?,
-                )
-                .await?;
-            repository
-                .set(
-                    "about_now",
-                    &serde_json::to_string(&settings.about_now)
-                        .map_err(|error| SettingServiceError::Validation(error.to_string()))?,
-                )
-                .await?;
-            repository
-                .set(
-                    "about_principles",
-                    &serde_json::to_string(&settings.about_principles)
-                        .map_err(|error| SettingServiceError::Validation(error.to_string()))?,
-                )
-                .await?;
-            repository
-                .set(
-                    "about_stack",
-                    &serde_json::to_string(&settings.about_stack)
-                        .map_err(|error| SettingServiceError::Validation(error.to_string()))?,
-                )
-                .await?;
-            repository
-                .set(
-                    "about_site",
-                    &serde_json::to_string(&settings.about_site)
-                        .map_err(|error| SettingServiceError::Validation(error.to_string()))?,
-                )
-                .await?;
-        }
-
-        unit_of_work.commit().await?;
-
-        self.get().await
+    if settings.profile_name.trim().is_empty() {
+        return Err(SettingServiceError::Validation(
+            "profile_name is required".to_string(),
+        ));
     }
 
-    fn build(pairs: Vec<(String, String)>) -> SiteSettings {
-        let mut settings = SiteSettings::default();
-
-        for (key, value) in pairs {
-            match key.as_str() {
-                "site_title" if !value.is_empty() => settings.site_title = value,
-                "site_tagline" => settings.site_tagline = value,
-                "profile_name" if !value.is_empty() => settings.profile_name = value,
-                "profile_handle" => settings.profile_handle = value,
-                "profile_tagline" => settings.profile_tagline = value,
-                "profile_bio" => settings.profile_bio = value,
-                "profile_links" => {
-                    if let Ok(links) = serde_json::from_str::<Vec<ProfileLink>>(&value) {
-                        settings.profile_links = links;
-                    }
-                }
-                "about_markdown" => settings.about_markdown = value,
-                "terminal_home" => {
-                    if let Ok(card) = serde_json::from_str::<TerminalHomeCard>(&value) {
-                        settings.terminal_home = card;
-                    }
-                }
-                "terminal_about" => {
-                    if let Ok(card) = serde_json::from_str::<TerminalAboutCard>(&value) {
-                        settings.terminal_about = card;
-                    }
-                }
-                "home_profile" => {
-                    if let Ok(card) = serde_json::from_str::<HomeProfileCard>(&value) {
-                        settings.home_profile = card;
-                    }
-                }
-                "home_now" => {
-                    if let Ok(card) = serde_json::from_str::<HomeNowCard>(&value) {
-                        settings.home_now = card;
-                    }
-                }
-                "about_now" => {
-                    if let Ok(card) = serde_json::from_str::<AboutNowCard>(&value) {
-                        settings.about_now = card;
-                    }
-                }
-                "about_principles" => {
-                    if let Ok(card) = serde_json::from_str::<AboutPrinciplesCard>(&value) {
-                        settings.about_principles = card;
-                    }
-                }
-                "about_stack" => {
-                    if let Ok(card) = serde_json::from_str::<AboutStackCard>(&value) {
-                        settings.about_stack = card;
-                    }
-                }
-                "about_site" => {
-                    if let Ok(card) = serde_json::from_str::<AboutSiteCard>(&value) {
-                        settings.about_site = card;
-                    }
-                }
-                _ => {}
-            }
-        }
-
-        settings
+    if settings.profile_links.len() > 12 {
+        return Err(SettingServiceError::Validation(
+            "profile_links must contain at most 12 items".to_string(),
+        ));
     }
 
-    fn validate(&self, settings: &SiteSettings) -> Result<(), SettingServiceError> {
-        if settings.site_title.trim().is_empty() {
+    for link in &settings.profile_links {
+        if link.label.trim().is_empty() || link.href.trim().is_empty() {
             return Err(SettingServiceError::Validation(
-                "site_title is required".to_string(),
+                "profile_links items need label and href".to_string(),
             ));
         }
-
-        if settings.profile_name.trim().is_empty() {
-            return Err(SettingServiceError::Validation(
-                "profile_name is required".to_string(),
-            ));
-        }
-
-        if settings.profile_links.len() > 12 {
-            return Err(SettingServiceError::Validation(
-                "profile_links must contain at most 12 items".to_string(),
-            ));
-        }
-
-        for link in &settings.profile_links {
-            if link.label.trim().is_empty() || link.href.trim().is_empty() {
-                return Err(SettingServiceError::Validation(
-                    "profile_links items need label and href".to_string(),
-                ));
-            }
-        }
-
-        if settings.about_markdown.chars().count() > 20_000 {
-            return Err(SettingServiceError::Validation(
-                "about_markdown is too long".to_string(),
-            ));
-        }
-
-        for field in [
-            &settings.terminal_home.title,
-            &settings.terminal_home.shell,
-            &settings.terminal_home.whoami_name,
-            &settings.terminal_home.whoami_role,
-            &settings.terminal_home.footer_left,
-            &settings.terminal_home.footer_right,
-            &settings.terminal_about.title,
-            &settings.terminal_about.whoami_name,
-            &settings.terminal_about.whoami_role,
-            &settings.terminal_about.focus,
-            &settings.terminal_about.currently,
-            &settings.terminal_about.status,
-            &settings.terminal_about.since,
-            &settings.home_profile.username,
-            &settings.home_profile.role,
-            &settings.home_profile.bio,
-        ] {
-            if field.chars().count() > 120 {
-                return Err(SettingServiceError::Validation(
-                    "terminal card fields must be at most 120 characters".to_string(),
-                ));
-            }
-        }
-
-        if settings.home_now.items.len() > 8 {
-            return Err(SettingServiceError::Validation(
-                "home_now.items must contain at most 8 entries".to_string(),
-            ));
-        }
-
-        for item in &settings.home_now.items {
-            if item.key.chars().count() > 80 || item.value.chars().count() > 120 {
-                return Err(SettingServiceError::Validation(
-                    "home_now item fields are too long".to_string(),
-                ));
-            }
-        }
-
-        if settings.about_now.items.len() > 10 {
-            return Err(SettingServiceError::Validation(
-                "about_now.items must contain at most 10 entries".to_string(),
-            ));
-        }
-
-        if settings.about_principles.items.len() > 10 {
-            return Err(SettingServiceError::Validation(
-                "about_principles.items must contain at most 10 entries".to_string(),
-            ));
-        }
-
-        if settings.about_stack.groups.len() > 6 {
-            return Err(SettingServiceError::Validation(
-                "about_stack.groups must contain at most 6 groups".to_string(),
-            ));
-        }
-
-        for group in &settings.about_stack.groups {
-            if group.label.chars().count() > 40 || group.tags.len() > 12 {
-                return Err(SettingServiceError::Validation(
-                    "about_stack group fields are invalid".to_string(),
-                ));
-            }
-
-            for tag in &group.tags {
-                if tag.chars().count() > 40 {
-                    return Err(SettingServiceError::Validation(
-                        "about_stack tags must be at most 40 characters".to_string(),
-                    ));
-                }
-            }
-        }
-
-        for text in [
-            &settings.about_now.heading,
-            &settings.about_now.description,
-            &settings.about_principles.heading,
-            &settings.about_site.heading,
-            &settings.about_site.quote,
-        ] {
-            if text.chars().count() > 300 {
-                return Err(SettingServiceError::Validation(
-                    "about card fields must be at most 300 characters".to_string(),
-                ));
-            }
-        }
-
-        if settings.about_now.description.chars().count() > 500
-            || settings.about_site.description.chars().count() > 500
-        {
-            return Err(SettingServiceError::Validation(
-                "about card descriptions must be at most 500 characters".to_string(),
-            ));
-        }
-
-        for item in &settings.about_now.items {
-            if item.key.chars().count() > 40 || item.value.chars().count() > 120 {
-                return Err(SettingServiceError::Validation(
-                    "about_now item fields are too long".to_string(),
-                ));
-            }
-        }
-
-        for item in &settings.about_principles.items {
-            if item.title.chars().count() > 40 || item.description.chars().count() > 200 {
-                return Err(SettingServiceError::Validation(
-                    "about_principles item fields are too long".to_string(),
-                ));
-            }
-        }
-
-        Ok(())
     }
+
+    if settings.about_markdown.chars().count() > 20_000 {
+        return Err(SettingServiceError::Validation(
+            "about_markdown is too long".to_string(),
+        ));
+    }
+
+    for field in [
+        &settings.terminal_home.title,
+        &settings.terminal_home.shell,
+        &settings.terminal_home.whoami_name,
+        &settings.terminal_home.whoami_role,
+        &settings.terminal_home.footer_left,
+        &settings.terminal_home.footer_right,
+        &settings.terminal_about.title,
+        &settings.terminal_about.whoami_name,
+        &settings.terminal_about.whoami_role,
+        &settings.terminal_about.focus,
+        &settings.terminal_about.currently,
+        &settings.terminal_about.status,
+        &settings.terminal_about.since,
+        &settings.home_profile.username,
+        &settings.home_profile.role,
+        &settings.home_profile.bio,
+    ] {
+        if field.chars().count() > 120 {
+            return Err(SettingServiceError::Validation(
+                "terminal card fields must be at most 120 characters".to_string(),
+            ));
+        }
+    }
+
+    if settings.home_now.items.len() > 8 {
+        return Err(SettingServiceError::Validation(
+            "home_now.items must contain at most 8 entries".to_string(),
+        ));
+    }
+
+    for item in &settings.home_now.items {
+        if item.key.chars().count() > 80 || item.value.chars().count() > 120 {
+            return Err(SettingServiceError::Validation(
+                "home_now item fields are too long".to_string(),
+            ));
+        }
+    }
+
+    if settings.about_now.items.len() > 10 {
+        return Err(SettingServiceError::Validation(
+            "about_now.items must contain at most 10 entries".to_string(),
+        ));
+    }
+
+    if settings.about_principles.items.len() > 10 {
+        return Err(SettingServiceError::Validation(
+            "about_principles.items must contain at most 10 entries".to_string(),
+        ));
+    }
+
+    if settings.about_stack.groups.len() > 6 {
+        return Err(SettingServiceError::Validation(
+            "about_stack.groups must contain at most 6 groups".to_string(),
+        ));
+    }
+
+    for group in &settings.about_stack.groups {
+        if group.label.chars().count() > 40 || group.tags.len() > 12 {
+            return Err(SettingServiceError::Validation(
+                "about_stack group fields are invalid".to_string(),
+            ));
+        }
+
+        for tag in &group.tags {
+            if tag.chars().count() > 40 {
+                return Err(SettingServiceError::Validation(
+                    "about_stack tags must be at most 40 characters".to_string(),
+                ));
+            }
+        }
+    }
+
+    for text in [
+        &settings.about_now.heading,
+        &settings.about_now.description,
+        &settings.about_principles.heading,
+        &settings.about_site.heading,
+        &settings.about_site.quote,
+    ] {
+        if text.chars().count() > 300 {
+            return Err(SettingServiceError::Validation(
+                "about card fields must be at most 300 characters".to_string(),
+            ));
+        }
+    }
+
+    if settings.about_now.description.chars().count() > 500
+        || settings.about_site.description.chars().count() > 500
+    {
+        return Err(SettingServiceError::Validation(
+            "about card descriptions must be at most 500 characters".to_string(),
+        ));
+    }
+
+    for item in &settings.about_now.items {
+        if item.key.chars().count() > 40 || item.value.chars().count() > 120 {
+            return Err(SettingServiceError::Validation(
+                "about_now item fields are too long".to_string(),
+            ));
+        }
+    }
+
+    for item in &settings.about_principles.items {
+        if item.title.chars().count() > 40 || item.description.chars().count() > 200 {
+            return Err(SettingServiceError::Validation(
+                "about_principles item fields are too long".to_string(),
+            ));
+        }
+    }
+
+    Ok(())
 }

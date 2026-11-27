@@ -1,5 +1,4 @@
 use std::collections::HashSet;
-use std::sync::Arc;
 
 use thiserror::Error;
 
@@ -19,129 +18,129 @@ pub enum ServiceError {
     Conflict(String),
 }
 
-#[derive(Clone)]
-pub struct PostService {
-    unit_of_work_factory: Arc<dyn UnitOfWorkFactory>,
+pub async fn list_posts(
+    factory: &dyn UnitOfWorkFactory,
+    status: Option<PostStatus>,
+) -> Result<Vec<Post>, ServiceError> {
+    let mut unit_of_work = factory.begin().await?;
+    let posts = unit_of_work.posts().list(status).await?;
+    unit_of_work.commit().await?;
+    Ok(posts)
 }
 
-impl PostService {
-    pub fn new(unit_of_work_factory: Arc<dyn UnitOfWorkFactory>) -> Self {
-        Self {
-            unit_of_work_factory,
-        }
+pub async fn get_post(
+    factory: &dyn UnitOfWorkFactory,
+    slug: &str,
+    status: Option<PostStatus>,
+) -> Result<Post, ServiceError> {
+    let mut unit_of_work = factory.begin().await?;
+    let post = unit_of_work.posts().find_by_slug(slug).await?;
+    unit_of_work.commit().await?;
+
+    let post = post.ok_or(ServiceError::NotFound)?;
+
+    if let Some(required) = status
+        && post.status != required
+    {
+        return Err(ServiceError::NotFound);
     }
 
-    pub async fn list_posts(&self, status: Option<PostStatus>) -> Result<Vec<Post>, ServiceError> {
-        let mut unit_of_work = self.unit_of_work_factory.begin().await?;
-        let posts = unit_of_work.posts().list(status).await?;
-        unit_of_work.commit().await?;
-        Ok(posts)
+    Ok(post)
+}
+
+pub async fn get_published_post_with_view(
+    factory: &dyn UnitOfWorkFactory,
+    slug: &str,
+) -> Result<Post, ServiceError> {
+    let mut unit_of_work = factory.begin().await?;
+    unit_of_work.posts().increment_views(slug).await?;
+    let post = unit_of_work
+        .posts()
+        .find_by_slug(slug)
+        .await?
+        .ok_or(ServiceError::NotFound)?;
+
+    if post.status != PostStatus::Published {
+        return Err(ServiceError::NotFound);
     }
 
-    pub async fn get_post(
-        &self,
-        slug: &str,
-        status: Option<PostStatus>,
-    ) -> Result<Post, ServiceError> {
-        let mut unit_of_work = self.unit_of_work_factory.begin().await?;
-        let post = unit_of_work.posts().find_by_slug(slug).await?;
-        unit_of_work.commit().await?;
+    unit_of_work.commit().await?;
+    Ok(post)
+}
 
-        let post = post.ok_or(ServiceError::NotFound)?;
+pub async fn create_post(
+    factory: &dyn UnitOfWorkFactory,
+    post: Post,
+) -> Result<Post, ServiceError> {
+    let mut post = normalize_post(post)?;
+    post.views = 0;
+    let mut unit_of_work = factory.begin().await?;
 
-        if let Some(required) = status
-            && post.status != required
-        {
-            return Err(ServiceError::NotFound);
-        }
-
-        Ok(post)
+    if unit_of_work
+        .posts()
+        .find_by_slug(&post.slug)
+        .await?
+        .is_some()
+    {
+        return Err(ServiceError::Conflict(post.slug));
     }
 
-    pub async fn create_post(&self, post: Post) -> Result<Post, ServiceError> {
-        let mut post = normalize_post(post)?;
-        post.views = 0;
-        let mut unit_of_work = self.unit_of_work_factory.begin().await?;
+    unit_of_work.posts().insert(&post).await?;
+    unit_of_work.commit().await?;
+    Ok(post)
+}
 
-        if unit_of_work
+pub async fn update_post(
+    factory: &dyn UnitOfWorkFactory,
+    current_slug: &str,
+    post: Post,
+) -> Result<Post, ServiceError> {
+    let mut post = normalize_post(post)?;
+    let current_slug = current_slug.trim().to_string();
+
+    if current_slug.is_empty() {
+        return Err(ServiceError::Validation("slug is required".to_string()));
+    }
+
+    let mut unit_of_work = factory.begin().await?;
+
+    let existing = unit_of_work
+        .posts()
+        .find_by_slug(&current_slug)
+        .await?
+        .ok_or(ServiceError::NotFound)?;
+
+    if current_slug != post.slug
+        && unit_of_work
             .posts()
             .find_by_slug(&post.slug)
             .await?
             .is_some()
-        {
-            return Err(ServiceError::Conflict(post.slug));
-        }
-
-        unit_of_work.posts().insert(&post).await?;
-        unit_of_work.commit().await?;
-        Ok(post)
+    {
+        return Err(ServiceError::Conflict(post.slug));
     }
 
-    pub async fn update_post(&self, current_slug: &str, post: Post) -> Result<Post, ServiceError> {
-        let mut post = normalize_post(post)?;
-        let current_slug = current_slug.trim().to_string();
+    post.views = existing.views;
+    unit_of_work.posts().update(&current_slug, &post).await?;
+    unit_of_work.commit().await?;
+    Ok(post)
+}
 
-        if current_slug.is_empty() {
-            return Err(ServiceError::Validation("slug is required".to_string()));
-        }
+pub async fn delete_post(factory: &dyn UnitOfWorkFactory, slug: &str) -> Result<(), ServiceError> {
+    let slug = slug.trim();
 
-        let mut unit_of_work = self.unit_of_work_factory.begin().await?;
-
-        let existing = unit_of_work
-            .posts()
-            .find_by_slug(&current_slug)
-            .await?
-            .ok_or(ServiceError::NotFound)?;
-
-        if current_slug != post.slug
-            && unit_of_work
-                .posts()
-                .find_by_slug(&post.slug)
-                .await?
-                .is_some()
-        {
-            return Err(ServiceError::Conflict(post.slug));
-        }
-
-        post.views = existing.views;
-        unit_of_work.posts().update(&current_slug, &post).await?;
-        unit_of_work.commit().await?;
-        Ok(post)
+    if slug.is_empty() {
+        return Err(ServiceError::Validation("slug is required".to_string()));
     }
 
-    pub async fn get_published_post_with_view(&self, slug: &str) -> Result<Post, ServiceError> {
-        let mut unit_of_work = self.unit_of_work_factory.begin().await?;
-        unit_of_work.posts().increment_views(slug).await?;
-        let post = unit_of_work
-            .posts()
-            .find_by_slug(slug)
-            .await?
-            .ok_or(ServiceError::NotFound)?;
+    let mut unit_of_work = factory.begin().await?;
 
-        if post.status != PostStatus::Published {
-            return Err(ServiceError::NotFound);
-        }
-
-        unit_of_work.commit().await?;
-        Ok(post)
+    if !unit_of_work.posts().delete(slug).await? {
+        return Err(ServiceError::NotFound);
     }
 
-    pub async fn delete_post(&self, slug: &str) -> Result<(), ServiceError> {
-        let slug = slug.trim();
-
-        if slug.is_empty() {
-            return Err(ServiceError::Validation("slug is required".to_string()));
-        }
-
-        let mut unit_of_work = self.unit_of_work_factory.begin().await?;
-
-        if !unit_of_work.posts().delete(slug).await? {
-            return Err(ServiceError::NotFound);
-        }
-
-        unit_of_work.commit().await?;
-        Ok(())
-    }
+    unit_of_work.commit().await?;
+    Ok(())
 }
 
 fn normalize_post(mut post: Post) -> Result<Post, ServiceError> {

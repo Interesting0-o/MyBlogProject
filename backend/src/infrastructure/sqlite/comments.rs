@@ -50,27 +50,23 @@ impl CommentRepository for SqliteCommentRepository<'_> {
         status: Option<CommentStatus>,
     ) -> Result<Vec<Comment>, RepositoryError> {
         let rows = match status {
-            Some(status) => {
-                sqlx::query_as!(
-                    CommentRow,
-                    "SELECT id, post_slug, author, content, created_at, status FROM comments \
+            Some(status) => sqlx::query_as!(
+                CommentRow,
+                "SELECT id, post_slug, author, content, created_at, status FROM comments \
                      WHERE status = ? ORDER BY created_at DESC, id DESC",
-                    status.as_str(),
-                )
-                .fetch_all(&mut **self.transaction)
-                .await
-                .map_err(map_sqlx_error)?
-            }
-            None => {
-                sqlx::query_as!(
-                    CommentRow,
-                    "SELECT id, post_slug, author, content, created_at, status FROM comments \
+                status.as_str(),
+            )
+            .fetch_all(&mut **self.transaction)
+            .await
+            .map_err(map_sqlx_error)?,
+            None => sqlx::query_as!(
+                CommentRow,
+                "SELECT id, post_slug, author, content, created_at, status FROM comments \
                      ORDER BY created_at DESC, id DESC",
-                )
-                .fetch_all(&mut **self.transaction)
-                .await
-                .map_err(map_sqlx_error)?
-            }
+            )
+            .fetch_all(&mut **self.transaction)
+            .await
+            .map_err(map_sqlx_error)?,
         };
 
         Ok(rows.into_iter().map(Comment::from).collect())
@@ -156,12 +152,10 @@ impl CommentRepository for SqliteCommentRepository<'_> {
     }
 
     async fn count_by_status(&mut self) -> Result<Vec<(CommentStatus, i64)>, RepositoryError> {
-        let rows = sqlx::query!(
-            "SELECT status, COUNT(*) AS total FROM comments GROUP BY status",
-        )
-        .fetch_all(&mut **self.transaction)
-        .await
-        .map_err(map_sqlx_error)?;
+        let rows = sqlx::query!("SELECT status, COUNT(*) AS total FROM comments GROUP BY status",)
+            .fetch_all(&mut **self.transaction)
+            .await
+            .map_err(map_sqlx_error)?;
 
         rows.into_iter()
             .map(|row| {

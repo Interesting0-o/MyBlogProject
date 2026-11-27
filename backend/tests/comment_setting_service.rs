@@ -2,12 +2,13 @@ use std::sync::Arc;
 
 use sqlx::sqlite::SqlitePoolOptions;
 use sudo4_api::domain::comment::CommentStatus;
+use sudo4_api::domain::unit_of_work::UnitOfWorkFactory;
 use sudo4_api::infrastructure::sqlite::SqliteUnitOfWorkFactory;
-use sudo4_api::service::comment::{CommentService, CommentServiceError};
-use sudo4_api::service::post::{PostService, ServiceError};
-use sudo4_api::service::setting::{SettingService, SiteSettings, SettingServiceError};
+use sudo4_api::service::comment::{self, CommentServiceError};
+use sudo4_api::service::post::{self, ServiceError};
+use sudo4_api::service::setting::{self, SettingServiceError, SiteSettings};
 
-async fn test_factory() -> Arc<SqliteUnitOfWorkFactory> {
+async fn test_factory() -> Arc<dyn UnitOfWorkFactory> {
     let pool = SqlitePoolOptions::new()
         .max_connections(1)
         .connect("sqlite::memory:")
@@ -20,17 +21,6 @@ async fn test_factory() -> Arc<SqliteUnitOfWorkFactory> {
         .expect("Failed to run migrations");
 
     Arc::new(SqliteUnitOfWorkFactory::new(pool))
-}
-
-async fn seeded_post_service(factory: &Arc<SqliteUnitOfWorkFactory>) -> PostService {
-    let service = PostService::new(factory.clone());
-
-    service
-        .create_post(sample_post("commentable"))
-        .await
-        .expect("create post");
-
-    service
 }
 
 fn sample_post(slug: &str) -> sudo4_api::domain::post::Post {
@@ -52,39 +42,35 @@ fn sample_post(slug: &str) -> sudo4_api::domain::post::Post {
 #[tokio::test]
 async fn comments_start_pending_and_are_moderated() {
     let factory = test_factory().await;
-    seeded_post_service(&factory).await;
-    let comments = CommentService::new(factory.clone());
+    post::create_post(factory.as_ref(), sample_post("commentable"))
+        .await
+        .expect("create post");
 
-    let created = comments
-        .create("commentable", "alice", "第一条评论")
+    let created = comment::create(factory.as_ref(), "commentable", "alice", "第一条评论")
         .await
         .expect("create comment");
     assert_eq!(created.status, CommentStatus::Pending);
 
-    let public_comments = comments
-        .list_public("commentable")
+    let public_comments = comment::list_public(factory.as_ref(), "commentable")
         .await
         .expect("list public comments");
     assert!(public_comments.is_empty());
 
-    comments
-        .set_status(created.id, CommentStatus::Approved)
+    comment::set_status(factory.as_ref(), created.id, CommentStatus::Approved)
         .await
         .expect("approve comment");
 
-    let public_comments = comments
-        .list_public("commentable")
+    let public_comments = comment::list_public(factory.as_ref(), "commentable")
         .await
         .expect("list public comments");
     assert_eq!(public_comments.len(), 1);
     assert_eq!(public_comments[0].author, "alice");
 
-    comments
-        .delete(created.id)
+    comment::delete(factory.as_ref(), created.id)
         .await
         .expect("delete comment");
     assert!(matches!(
-        comments.set_status(created.id, CommentStatus::Approved).await,
+        comment::set_status(factory.as_ref(), created.id, CommentStatus::Approved).await,
         Err(CommentServiceError::NotFound)
     ));
 }
@@ -92,23 +78,30 @@ async fn comments_start_pending_and_are_moderated() {
 #[tokio::test]
 async fn rejects_invalid_comments() {
     let factory = test_factory().await;
-    seeded_post_service(&factory).await;
-    let comments = CommentService::new(factory.clone());
+    post::create_post(factory.as_ref(), sample_post("commentable"))
+        .await
+        .expect("create post");
 
     assert!(matches!(
-        comments.create("missing-post", "a", "b").await,
+        comment::create(factory.as_ref(), "missing-post", "a", "b").await,
         Err(CommentServiceError::PostNotFound)
     ));
     assert!(matches!(
-        comments.create("commentable", "", "b").await,
+        comment::create(factory.as_ref(), "commentable", "", "b").await,
         Err(CommentServiceError::Validation(_))
     ));
     assert!(matches!(
-        comments.create("commentable", "a", "").await,
+        comment::create(factory.as_ref(), "commentable", "a", "").await,
         Err(CommentServiceError::Validation(_))
     ));
     assert!(matches!(
-        comments.create("commentable", "a", "x".repeat(1001).as_str()).await,
+        comment::create(
+            factory.as_ref(),
+            "commentable",
+            "a",
+            "x".repeat(1001).as_str()
+        )
+        .await,
         Err(CommentServiceError::Validation(_))
     ));
 }
@@ -116,9 +109,10 @@ async fn rejects_invalid_comments() {
 #[tokio::test]
 async fn settings_round_trip() {
     let factory = test_factory().await;
-    let settings = SettingService::new(factory.clone());
 
-    let initial = settings.get().await.expect("initial settings");
+    let initial = setting::get(factory.as_ref())
+        .await
+        .expect("initial settings");
     assert_eq!(initial.site_title, "sudo4");
 
     let updated = SiteSettings {
@@ -157,17 +151,20 @@ async fn settings_round_trip() {
         about_site: sudo4_api::service::setting::AboutSiteCard::default(),
     };
 
-    let saved = settings.update(&updated).await.expect("save settings");
+    let saved = setting::update(factory.as_ref(), &updated)
+        .await
+        .expect("save settings");
     assert_eq!(saved, updated);
 
-    let reloaded = settings.get().await.expect("reload settings");
+    let reloaded = setting::get(factory.as_ref())
+        .await
+        .expect("reload settings");
     assert_eq!(reloaded, updated);
 }
 
 #[tokio::test]
 async fn settings_reject_empty_site_title() {
     let factory = test_factory().await;
-    let settings = SettingService::new(factory.clone());
 
     let invalid = SiteSettings {
         site_title: "  ".to_string(),
@@ -175,7 +172,7 @@ async fn settings_reject_empty_site_title() {
     };
 
     assert!(matches!(
-        settings.update(&invalid).await,
+        setting::update(factory.as_ref(), &invalid).await,
         Err(SettingServiceError::Validation(_))
     ));
 }
@@ -183,18 +180,20 @@ async fn settings_reject_empty_site_title() {
 #[tokio::test]
 async fn deleting_post_removes_comments() {
     let factory = test_factory().await;
-    let posts = seeded_post_service(&factory).await;
-    let comments = CommentService::new(factory.clone());
+    post::create_post(factory.as_ref(), sample_post("commentable"))
+        .await
+        .expect("create post");
 
-    let created = comments
-        .create("commentable", "alice", "将被级联删除")
+    let created = comment::create(factory.as_ref(), "commentable", "alice", "将被级联删除")
         .await
         .expect("create comment");
 
-    posts.delete_post("commentable").await.expect("delete post");
+    post::delete_post(factory.as_ref(), "commentable")
+        .await
+        .expect("delete post");
 
     assert!(matches!(
-        comments.set_status(created.id, CommentStatus::Approved).await,
+        comment::set_status(factory.as_ref(), created.id, CommentStatus::Approved).await,
         Err(CommentServiceError::NotFound)
     ));
 }
@@ -202,25 +201,25 @@ async fn deleting_post_removes_comments() {
 #[tokio::test]
 async fn post_service_keeps_views_on_update() {
     let factory = test_factory().await;
-    let posts = seeded_post_service(&factory).await;
+    post::create_post(factory.as_ref(), sample_post("commentable"))
+        .await
+        .expect("create post");
 
     // 模拟公开访问带来的浏览量
-    let fetched = posts
-        .get_published_post_with_view("commentable")
+    let fetched = post::get_published_post_with_view(factory.as_ref(), "commentable")
         .await
         .expect("get with view");
     assert_eq!(fetched.views, 1);
 
     let mut updated = fetched;
     updated.title = "Updated".to_string();
-    let updated = posts
-        .update_post("commentable", updated)
+    let updated = post::update_post(factory.as_ref(), "commentable", updated)
         .await
         .expect("update post");
     assert_eq!(updated.views, 1);
 
     assert!(matches!(
-        posts.get_published_post_with_view("missing").await,
+        post::get_published_post_with_view(factory.as_ref(), "missing").await,
         Err(ServiceError::NotFound)
     ));
 }

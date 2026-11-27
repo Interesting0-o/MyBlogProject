@@ -1,9 +1,7 @@
 use async_trait::async_trait;
 
 use crate::domain::error::RepositoryError;
-use crate::domain::{
-    comment::CommentRepository, post::PostRepository, setting::SettingRepository,
-};
+use crate::domain::{comment::CommentRepository, post::PostRepository, setting::SettingRepository};
 
 #[async_trait]
 pub trait UnitOfWork: Send {

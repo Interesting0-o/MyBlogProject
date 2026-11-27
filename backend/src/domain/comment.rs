@@ -60,13 +60,20 @@ pub trait CommentRepository: Send {
         approved_only: bool,
     ) -> Result<Vec<Comment>, RepositoryError>;
 
-    async fn list(&mut self, status: Option<CommentStatus>) -> Result<Vec<Comment>, RepositoryError>;
+    async fn list(
+        &mut self,
+        status: Option<CommentStatus>,
+    ) -> Result<Vec<Comment>, RepositoryError>;
 
     async fn find(&mut self, id: i64) -> Result<Option<Comment>, RepositoryError>;
 
     async fn insert(&mut self, comment: &NewComment) -> Result<Comment, RepositoryError>;
 
-    async fn update_status(&mut self, id: i64, status: CommentStatus) -> Result<bool, RepositoryError>;
+    async fn update_status(
+        &mut self,
+        id: i64,
+        status: CommentStatus,
+    ) -> Result<bool, RepositoryError>;
 
     async fn delete(&mut self, id: i64) -> Result<bool, RepositoryError>;
 

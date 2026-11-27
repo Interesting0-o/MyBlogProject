@@ -58,152 +58,158 @@ impl LoginState {
     }
 }
 
+/// 登录锁定状态的载体：失败计数与锁定截止时间在请求之间共享。
 #[derive(Clone)]
-pub struct AuthService {
+pub struct LoginGuard {
     login_state: std::sync::Arc<Mutex<LoginState>>,
 }
 
-impl AuthService {
+impl LoginGuard {
     pub fn new() -> Self {
         Self {
             login_state: std::sync::Arc::new(Mutex::new(LoginState::new())),
         }
     }
-
-    pub async fn login(&self, username: &str, password: &str) -> Result<TokenResponse, AuthError> {
-        let expected_username = CONFIG.admin_username.as_str();
-        let Some(password_hash) = CONFIG.admin_password_hash.clone() else {
-            return Err(AuthError::NotConfigured);
-        };
-        let Some(secret) = CONFIG.admin_jwt_secret.clone() else {
-            return Err(AuthError::NotConfigured);
-        };
-
-        if self.is_locked() {
-            tracing::warn!(username = %username, "login attempt while account is locked");
-            return Err(AuthError::AccountLocked);
-        }
-
-        let username_matches = constant_time_eq(username.trim(), expected_username);
-        let password_matches = bcrypt::verify(password, &password_hash).unwrap_or(false);
-
-        if !username_matches || !password_matches {
-            self.record_failure();
-            tracing::warn!(username = %username, "failed admin login attempt");
-            return Err(AuthError::InvalidCredentials);
-        }
-
-        self.reset_failures();
-
-        let token = self.issue_token(expected_username, &secret)?;
-        tracing::info!(username = %expected_username, "admin login succeeded");
-        Ok(token)
-    }
-
-    pub fn verify_token(&self, token: &str) -> Result<AuthenticatedAdmin, AuthError> {
-        let Some(secret) = CONFIG.admin_jwt_secret.clone() else {
-            return Err(AuthError::NotConfigured);
-        };
-
-        let mut validation = Validation::default();
-        validation.validate_exp = true;
-
-        let decoded = jsonwebtoken::decode::<Claims>(
-            token,
-            &DecodingKey::from_secret(secret.as_bytes()),
-            &validation,
-        )
-        .map_err(map_jwt_error)?;
-
-        Ok(AuthenticatedAdmin {
-            username: decoded.claims.sub,
-        })
-    }
-
-    fn issue_token(&self, username: &str, secret: &str) -> Result<TokenResponse, AuthError> {
-        let expires_in_secs = u64::try_from(CONFIG.admin_token_hours.max(1) * 3600)
-            .unwrap_or(12 * 3600);
-        let exp = now_unix() + expires_in_secs;
-        let claims = Claims {
-            sub: username.to_string(),
-            exp,
-        };
-
-        let token = jsonwebtoken::encode(
-            &Header::default(),
-            &claims,
-            &EncodingKey::from_secret(secret.as_bytes()),
-        )
-        .map_err(|error| AuthError::Token(error.to_string()))?;
-
-        Ok(TokenResponse {
-            token,
-            expires_at: format_unix(exp),
-        })
-    }
-
-    fn is_locked(&self) -> bool {
-        let mut state = self
-            .login_state
-            .lock()
-            .expect("admin login state poisoned");
-
-        if let Some(locked_until) = state.locked_until {
-            if Instant::now() < locked_until {
-                return true;
-            }
-
-            state.locked_until = None;
-            state.failures = 0;
-            state.window_started = Instant::now();
-        }
-
-        if state.window_started.elapsed() > FAILURE_WINDOW {
-            state.failures = 0;
-            state.window_started = Instant::now();
-        }
-
-        false
-    }
-
-    fn record_failure(&self) {
-        let mut state = self
-            .login_state
-            .lock()
-            .expect("admin login state poisoned");
-
-        if state.window_started.elapsed() > FAILURE_WINDOW {
-            state.failures = 0;
-            state.window_started = Instant::now();
-        }
-
-        state.failures += 1;
-
-        if state.failures >= MAX_FAILURES {
-            state.locked_until = Some(Instant::now() + LOCK_DURATION);
-            tracing::warn!(
-                failures = state.failures,
-                lock_seconds = LOCK_DURATION.as_secs(),
-                "admin account locked after repeated failures"
-            );
-        }
-    }
-
-    fn reset_failures(&self) {
-        let mut state = self
-            .login_state
-            .lock()
-            .expect("admin login state poisoned");
-        state.failures = 0;
-        state.locked_until = None;
-        state.window_started = Instant::now();
-    }
 }
 
-impl Default for AuthService {
+impl Default for LoginGuard {
     fn default() -> Self {
         Self::new()
     }
+}
+
+// 登录与校验逻辑为自由函数，状态通过参数注入。
+pub async fn login(
+    guard: &LoginGuard,
+    username: &str,
+    password: &str,
+) -> Result<TokenResponse, AuthError> {
+    let expected_username = CONFIG.admin_username.as_str();
+    let Some(password_hash) = CONFIG.admin_password_hash.clone() else {
+        return Err(AuthError::NotConfigured);
+    };
+    let Some(secret) = CONFIG.admin_jwt_secret.clone() else {
+        return Err(AuthError::NotConfigured);
+    };
+
+    if is_locked(guard) {
+        tracing::warn!(username = %username, "login attempt while account is locked");
+        return Err(AuthError::AccountLocked);
+    }
+
+    let username_matches = constant_time_eq(username.trim(), expected_username);
+    let password_matches = bcrypt::verify(password, &password_hash).unwrap_or(false);
+
+    if !username_matches || !password_matches {
+        record_failure(guard);
+        tracing::warn!(username = %username, "failed admin login attempt");
+        return Err(AuthError::InvalidCredentials);
+    }
+
+    reset_failures(guard);
+
+    let token = issue_token(expected_username, &secret)?;
+    tracing::info!(username = %expected_username, "admin login succeeded");
+    Ok(token)
+}
+
+pub fn verify_token(token: &str) -> Result<AuthenticatedAdmin, AuthError> {
+    let Some(secret) = CONFIG.admin_jwt_secret.clone() else {
+        return Err(AuthError::NotConfigured);
+    };
+
+    let mut validation = Validation::default();
+    validation.validate_exp = true;
+
+    let decoded = jsonwebtoken::decode::<Claims>(
+        token,
+        &DecodingKey::from_secret(secret.as_bytes()),
+        &validation,
+    )
+    .map_err(map_jwt_error)?;
+
+    Ok(AuthenticatedAdmin {
+        username: decoded.claims.sub,
+    })
+}
+
+pub(crate) fn issue_token(username: &str, secret: &str) -> Result<TokenResponse, AuthError> {
+    let expires_in_secs =
+        u64::try_from(CONFIG.admin_token_hours.max(1) * 3600).unwrap_or(12 * 3600);
+    let exp = now_unix() + expires_in_secs;
+    let claims = Claims {
+        sub: username.to_string(),
+        exp,
+    };
+
+    let token = jsonwebtoken::encode(
+        &Header::default(),
+        &claims,
+        &EncodingKey::from_secret(secret.as_bytes()),
+    )
+    .map_err(|error| AuthError::Token(error.to_string()))?;
+
+    Ok(TokenResponse {
+        token,
+        expires_at: format_unix(exp),
+    })
+}
+
+fn is_locked(guard: &LoginGuard) -> bool {
+    let mut state = guard
+        .login_state
+        .lock()
+        .expect("admin login state poisoned");
+
+    if let Some(locked_until) = state.locked_until {
+        if Instant::now() < locked_until {
+            return true;
+        }
+
+        state.locked_until = None;
+        state.failures = 0;
+        state.window_started = Instant::now();
+    }
+
+    if state.window_started.elapsed() > FAILURE_WINDOW {
+        state.failures = 0;
+        state.window_started = Instant::now();
+    }
+
+    false
+}
+
+fn record_failure(guard: &LoginGuard) {
+    let mut state = guard
+        .login_state
+        .lock()
+        .expect("admin login state poisoned");
+
+    if state.window_started.elapsed() > FAILURE_WINDOW {
+        state.failures = 0;
+        state.window_started = Instant::now();
+    }
+
+    state.failures += 1;
+
+    if state.failures >= MAX_FAILURES {
+        state.locked_until = Some(Instant::now() + LOCK_DURATION);
+        tracing::warn!(
+            failures = state.failures,
+            lock_seconds = LOCK_DURATION.as_secs(),
+            "admin account locked after repeated failures"
+        );
+    }
+}
+
+fn reset_failures(guard: &LoginGuard) {
+    let mut state = guard
+        .login_state
+        .lock()
+        .expect("admin login state poisoned");
+    state.failures = 0;
+    state.locked_until = None;
+    state.window_started = Instant::now();
 }
 
 fn map_jwt_error(error: JwtError) -> AuthError {

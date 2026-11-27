@@ -6,7 +6,10 @@ mod posts;
 mod settings;
 mod state;
 
-use axum::{Json, Router, middleware as axum_middleware, routing::{get, post}};
+use axum::{
+    Json, Router, middleware as axum_middleware,
+    routing::{get, post},
+};
 use serde_json::{Value, json};
 
 pub use state::AppState;
@@ -36,7 +39,10 @@ pub fn router(state: AppState) -> Router {
             "/comments/{id}",
             axum::routing::patch(admin::set_comment_status).delete(admin::delete_comment),
         )
-        .route("/settings", get(admin::get_settings).put(admin::update_settings))
+        .route(
+            "/settings",
+            get(admin::get_settings).put(admin::update_settings),
+        )
         .route("/stats", get(admin::stats))
         .route("/session", get(admin::session))
         .route_layer(axum_middleware::from_fn_with_state(

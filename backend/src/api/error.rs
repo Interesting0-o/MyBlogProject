@@ -85,7 +85,9 @@ impl From<AuthError> for ApiError {
     fn from(error: AuthError) -> Self {
         match error {
             AuthError::InvalidCredentials => Self::Unauthorized("用户名或密码错误".to_string()),
-            AuthError::AccountLocked => Self::Unauthorized("账户已临时锁定，请稍后再试".to_string()),
+            AuthError::AccountLocked => {
+                Self::Unauthorized("账户已临时锁定，请稍后再试".to_string())
+            }
             AuthError::NotConfigured => Self::NotConfigured,
             AuthError::Token(message) => {
                 tracing::error!(error = %message, "failed to issue admin token");

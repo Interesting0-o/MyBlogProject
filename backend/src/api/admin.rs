@@ -1,7 +1,7 @@
 use axum::{
     Json,
     extract::{Path, Query, State},
-    http::{StatusCode, header::SET_COOKIE},
+    http::{HeaderMap, StatusCode, header::SET_COOKIE},
     response::{IntoResponse, Response},
 };
 use serde::{Deserialize, Serialize};
@@ -13,8 +13,13 @@ use super::posts::{PostResponse, PostsResponse};
 use super::state::AppState;
 use crate::domain::comment::{Comment, CommentStatus};
 use crate::domain::post::{Post, PostStatus};
+use crate::service::auth;
 use crate::service::setting::SiteSettings;
 use crate::service::stats::StatsSummary;
+use crate::service::{
+    comment as comment_service, post as post_service, setting as setting_service,
+    stats as stats_service,
+};
 
 // ---------- auth ----------
 
@@ -26,17 +31,27 @@ pub(super) struct LoginRequest {
 
 pub(super) async fn login(
     State(state): State<AppState>,
+    headers: HeaderMap,
     Json(request): Json<LoginRequest>,
 ) -> Result<Response, ApiError> {
-    let token = state
-        .auth
-        .login(&request.username, &request.password)
-        .await?;
+    let token = auth::login(&state.auth, &request.username, &request.password).await?;
+
+    // 生产环境经 nginx 反代时通过 X-Forwarded-Proto 判定 HTTPS，附加 Secure 属性。
+    let secure = headers
+        .get("x-forwarded-proto")
+        .and_then(|value| value.to_str().ok())
+        .is_some_and(|value| {
+            value
+                .split(',')
+                .any(|part| part.trim().eq_ignore_ascii_case("https"))
+        });
+    let secure_flag = if secure { "; Secure" } else { "" };
 
     let cookie = format!(
-        "{}={}; Path=/; HttpOnly; SameSite=Strict; Max-Age={}",
+        "{}={}; Path=/; HttpOnly; SameSite=Strict{}; Max-Age={}",
         ADMIN_COOKIE,
         token.token,
+        secure_flag,
         max_age_seconds()
     );
 
@@ -60,7 +75,9 @@ pub(super) async fn logout() -> Response {
     ([(SET_COOKIE, cookie)], StatusCode::NO_CONTENT).into_response()
 }
 
-pub(super) async fn session(State(state): State<AppState>) -> Result<Json<serde_json::Value>, ApiError> {
+pub(super) async fn session(
+    State(state): State<AppState>,
+) -> Result<Json<serde_json::Value>, ApiError> {
     // 由 require_admin 中间件保证已通过认证。
     let _ = state;
     Ok(Json(json!({ "authenticated": true })))
@@ -116,7 +133,7 @@ impl TryFrom<PostRequest> for Post {
 pub(super) async fn list_posts(
     State(state): State<AppState>,
 ) -> Result<Json<PostsResponse>, ApiError> {
-    let posts = state.posts.list_posts(None).await?;
+    let posts = post_service::list_posts(state.db.as_ref(), None).await?;
 
     Ok(Json(PostsResponse {
         posts: posts.into_iter().map(PostResponse::from).collect(),
@@ -127,7 +144,7 @@ pub(super) async fn get_post(
     State(state): State<AppState>,
     Path(slug): Path<String>,
 ) -> Result<Json<PostResponse>, ApiError> {
-    let post = state.posts.get_post(&slug, None).await?;
+    let post = post_service::get_post(state.db.as_ref(), &slug, None).await?;
     Ok(Json(PostResponse::from(post)))
 }
 
@@ -135,7 +152,7 @@ pub(super) async fn create_post(
     State(state): State<AppState>,
     Json(request): Json<PostRequest>,
 ) -> Result<Json<PostResponse>, ApiError> {
-    let post = state.posts.create_post(Post::try_from(request)?).await?;
+    let post = post_service::create_post(state.db.as_ref(), Post::try_from(request)?).await?;
     Ok(Json(PostResponse::from(post)))
 }
 
@@ -144,10 +161,8 @@ pub(super) async fn update_post(
     Path(slug): Path<String>,
     Json(request): Json<PostRequest>,
 ) -> Result<Json<PostResponse>, ApiError> {
-    let post = state
-        .posts
-        .update_post(&slug, Post::try_from(request)?)
-        .await?;
+    let post =
+        post_service::update_post(state.db.as_ref(), &slug, Post::try_from(request)?).await?;
     Ok(Json(PostResponse::from(post)))
 }
 
@@ -155,7 +170,7 @@ pub(super) async fn delete_post(
     State(state): State<AppState>,
     Path(slug): Path<String>,
 ) -> Result<StatusCode, ApiError> {
-    state.posts.delete_post(&slug).await?;
+    post_service::delete_post(state.db.as_ref(), &slug).await?;
     Ok(StatusCode::NO_CONTENT)
 }
 
@@ -207,7 +222,7 @@ pub(super) async fn list_comments(
         ),
     };
 
-    let comments = state.comments.list(status).await?;
+    let comments = comment_service::list(state.db.as_ref(), status).await?;
 
     Ok(Json(CommentsResponse {
         comments: comments.into_iter().map(CommentResponse::from).collect(),
@@ -227,11 +242,9 @@ pub(super) async fn set_comment_status(
     let status = CommentStatus::parse(&request.status)
         .ok_or_else(|| ApiError::Validation(format!("invalid status: {}", request.status)))?;
 
-    state.comments.set_status(id, status).await?;
+    comment_service::set_status(state.db.as_ref(), id, status).await?;
 
-    let comment = state
-        .comments
-        .find(id)
+    let comment = comment_service::find(state.db.as_ref(), id)
         .await?
         .ok_or(ApiError::NotFound)?;
 
@@ -242,7 +255,7 @@ pub(super) async fn delete_comment(
     State(state): State<AppState>,
     Path(id): Path<i64>,
 ) -> Result<StatusCode, ApiError> {
-    state.comments.delete(id).await?;
+    comment_service::delete(state.db.as_ref(), id).await?;
     Ok(StatusCode::NO_CONTENT)
 }
 
@@ -251,7 +264,7 @@ pub(super) async fn delete_comment(
 pub(super) async fn get_settings(
     State(state): State<AppState>,
 ) -> Result<Json<SiteSettings>, ApiError> {
-    let settings = state.settings.get().await?;
+    let settings = setting_service::get(state.db.as_ref()).await?;
     Ok(Json(settings))
 }
 
@@ -259,13 +272,13 @@ pub(super) async fn update_settings(
     State(state): State<AppState>,
     Json(settings): Json<SiteSettings>,
 ) -> Result<Json<SiteSettings>, ApiError> {
-    let settings = state.settings.update(&settings).await?;
+    let settings = setting_service::update(state.db.as_ref(), &settings).await?;
     Ok(Json(settings))
 }
 
 // ---------- stats ----------
 
 pub(super) async fn stats(State(state): State<AppState>) -> Result<Json<StatsSummary>, ApiError> {
-    let summary = state.stats.summary().await?;
+    let summary = stats_service::summary(state.db.as_ref()).await?;
     Ok(Json(summary))
 }

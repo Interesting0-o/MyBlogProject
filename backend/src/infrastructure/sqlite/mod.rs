@@ -11,7 +11,10 @@ use sqlx::{
     sqlite::{SqliteConnectOptions, SqliteJournalMode},
 };
 
-use crate::domain::{error::RepositoryError, unit_of_work::{UnitOfWork, UnitOfWorkFactory}};
+use crate::domain::{
+    error::RepositoryError,
+    unit_of_work::{UnitOfWork, UnitOfWorkFactory},
+};
 
 pub type TransactionRef<'a, DB> = &'a mut Transaction<'static, DB>;
 

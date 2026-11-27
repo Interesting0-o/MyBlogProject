@@ -1,3 +1,4 @@
+import { readonly, ref } from 'vue'
 import { profile } from '@/content/profile'
 import type { SiteSettings } from '@/types/blog'
 
@@ -79,26 +80,55 @@ export const defaultSettings: SiteSettings = {
   },
 }
 
-let cachedSettings: SiteSettings | undefined
+// 全站共享的响应式设置：后台保存后立即生效，无需刷新页面。
+const settings = ref<SiteSettings>({ ...defaultSettings })
+let initialized = false
+let pending: Promise<SiteSettings> | undefined
 
-export async function fetchSiteSettings(): Promise<SiteSettings> {
-  if (cachedSettings) return cachedSettings
+async function fetchSettingsFromApi(): Promise<SiteSettings> {
+  const response = await fetch(`${apiBaseUrl}/settings`, {
+    headers: { Accept: 'application/json' },
+  })
 
-  try {
-    const response = await fetch(`${apiBaseUrl}/settings`, {
-      headers: { Accept: 'application/json' },
-    })
-
-    if (response.ok) {
-      cachedSettings = { ...defaultSettings, ...(await response.json()) }
-    }
-  } catch {
-    // 请求失败时使用内置默认值
+  if (!response.ok) {
+    throw new Error(`Failed to load settings: ${response.status}`)
   }
 
-  return cachedSettings ?? defaultSettings
+  const payload = (await response.json()) as Partial<SiteSettings>
+  return { ...defaultSettings, ...payload }
 }
 
-export function invalidateSettingsCache(): void {
-  cachedSettings = undefined
+export function useSiteSettings() {
+  if (!initialized && !pending) {
+    initialized = true
+    pending = fetchSettingsFromApi()
+      .then((value) => {
+        settings.value = value
+        return value
+      })
+      .catch(() => settings.value)
+      .finally(() => {
+        pending = undefined
+      })
+  }
+
+  return { settings: readonly(settings) }
+}
+
+export function applySiteSettings(next: SiteSettings) {
+  initialized = true
+  settings.value = { ...defaultSettings, ...next }
+}
+
+export async function refreshSiteSettings(): Promise<SiteSettings> {
+  pending ??= fetchSettingsFromApi()
+    .then((value) => {
+      settings.value = value
+      return value
+    })
+    .finally(() => {
+      pending = undefined
+    })
+
+  return pending
 }

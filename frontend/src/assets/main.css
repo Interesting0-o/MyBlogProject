@@ -238,6 +238,10 @@ svg {
   margin-inline: auto;
 }
 
+.container--wide {
+  width: min(1560px, calc(100% - 64px));
+}
+
 .sr-only {
   position: absolute;
   width: 1px;
@@ -304,6 +308,10 @@ svg {
 @media (max-width: 720px) {
   .container {
     width: min(100% - 48px, 1120px);
+  }
+
+  .container--wide {
+    width: min(100% - 40px, 1560px);
   }
 }
 

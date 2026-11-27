@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue'
 import { getAdminSettings, updateAdminSettings } from '@/services/admin'
-import { defaultSettings, invalidateSettingsCache } from '@/services/settings'
+import { applySiteSettings, defaultSettings } from '@/services/settings'
 import type { AboutStackGroup, SiteSettings } from '@/types/blog'
 
 type SettingsSection = 'general' | 'home' | 'about'
@@ -73,7 +73,7 @@ async function save() {
   try {
     const saved = await updateAdminSettings({ ...form, profileLinks: [...form.profileLinks] })
     applySettings(saved)
-    invalidateSettingsCache()
+    applySiteSettings(saved)
     message.value = { type: 'ok', text: '设置已保存' }
   } catch (error) {
     message.value = {
@@ -126,22 +126,23 @@ onMounted(load)
       <span>SITE SETTINGS</span>
     </div>
 
-    <div v-if="!loading" class="section-nav">
-      <button
-        v-for="item in sections"
-        :key="item.key"
-        class="section-tab"
-        :class="{ active: section === item.key }"
-        type="button"
-        @click="section = item.key"
-      >
-        {{ item.label }}
-      </button>
-    </div>
-
     <p v-if="loading" class="panel-state">加载中…</p>
 
-    <template v-else>
+    <div v-else class="settings-layout">
+      <aside class="section-nav" aria-label="设置分类">
+        <button
+          v-for="item in sections"
+          :key="item.key"
+          class="section-tab"
+          :class="{ active: section === item.key }"
+          type="button"
+          @click="section = item.key"
+        >
+          {{ item.label }}
+        </button>
+      </aside>
+
+      <div class="section-body">
       <template v-if="section === 'general'">
         <div class="field-grid">
           <label class="field">
@@ -478,17 +479,18 @@ onMounted(load)
         </section>
       </template>
 
-      <p v-if="message" class="form-message" :class="`form-message--${message.type}`">
-        {{ message.text }}
-      </p>
+        <p v-if="message" class="form-message" :class="`form-message--${message.type}`">
+          {{ message.text }}
+        </p>
 
-      <div class="form-actions">
-        <button class="action action--publish" type="button" :disabled="saving" @click="save">
-          {{ saving ? '保存中…' : '保存设置' }}
-        </button>
-        <span class="save-note">保存会提交所有分类的配置</span>
+        <div class="form-actions">
+          <button class="action action--publish" type="button" :disabled="saving" @click="save">
+            {{ saving ? '保存中…' : '保存设置' }}
+          </button>
+          <span class="save-note">保存会提交所有分类的配置</span>
+        </div>
       </div>
-    </template>
+    </div>
   </section>
 </template>
 
@@ -512,37 +514,55 @@ onMounted(load)
   letter-spacing: 0.04em;
 }
 
+.settings-layout {
+  display: grid;
+  grid-template-columns: minmax(170px, 200px) minmax(0, 1fr);
+  align-items: start;
+  gap: 1.5rem;
+}
+
 .section-nav {
+  position: sticky;
+  top: calc(var(--header-height) + 1.5rem);
   display: flex;
-  gap: 0.4rem;
-  padding-bottom: 0.9rem;
-  border-bottom: 1px solid var(--border);
+  flex-direction: column;
+  gap: 2px;
+  padding: 0.4rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-soft);
 }
 
 .section-tab {
-  padding: 0.4rem 0.85rem;
-  border: 1px solid var(--border);
-  border-radius: 999px;
+  padding: 0.55rem 0.75rem;
+  border: 0;
+  border-radius: 8px;
   color: var(--text-soft);
-  background: var(--surface);
+  background: transparent;
   font-family: var(--font-mono);
   font-size: var(--text-label);
+  text-align: left;
   cursor: pointer;
   transition:
     color 0.2s ease,
-    border-color 0.2s ease,
     background-color 0.2s ease;
 }
 
 .section-tab:hover {
-  border-color: var(--accent-line);
-  color: var(--accent);
+  color: var(--text);
+  background: var(--surface);
 }
 
 .section-tab.active {
-  border-color: var(--accent-line);
   color: var(--accent);
   background: var(--accent-soft);
+}
+
+.section-body {
+  display: grid;
+  min-width: 0;
+  max-width: 920px;
+  gap: 1.25rem;
 }
 
 .field-grid {
@@ -754,6 +774,20 @@ onMounted(load)
 }
 
 @media (max-width: 860px) {
+  .settings-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .section-nav {
+    position: static;
+    flex-direction: row;
+    overflow-x: auto;
+  }
+
+  .section-tab {
+    white-space: nowrap;
+  }
+
   .field-grid {
     grid-template-columns: 1fr;
   }

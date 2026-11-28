@@ -3,6 +3,6 @@ set -uo pipefail
 
 repo_root="$(git rev-parse --show-toplevel)"
 
-if ! "$repo_root/scripts/fetch-release.sh"; then
+if ! DEST="$repo_root/.artifacts" "$repo_root/scripts/fetch-release.sh"; then
   printf '\n[artifacts] Could not update compiled artifacts. Run scripts/fetch-release.sh manually later.\n' >&2
 fi

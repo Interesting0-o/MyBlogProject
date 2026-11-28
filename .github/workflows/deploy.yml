@@ -83,7 +83,8 @@ jobs:
           DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
           DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
           DEPLOY_PORT: ${{ vars.DEPLOY_PORT || '22' }}
-          DEPLOY_PATH: ${{ vars.DEPLOY_PATH || '/opt/sudo4' }}
+          DEPLOY_PATH: ${{ vars.DEPLOY_PATH || '/opt/sudo4/repo' }}
+          DEPLOY_SCRIPT: ${{ vars.DEPLOY_SCRIPT || '/opt/sudo4/deploy/deploy.sh' }}
           RELEASE_TAG: ${{ steps.release.outputs.tag }}
         run: |
           [[ -n "$DEPLOY_USER" ]] || { echo "Missing DEPLOY_USER secret" >&2; exit 1; }
@@ -95,11 +96,13 @@ jobs:
             -o IdentitiesOnly=yes \
             -o StrictHostKeyChecking=yes \
             "$DEPLOY_USER@$DEPLOY_HOST" \
-            bash -s -- "$DEPLOY_PATH" "$RELEASE_TAG" <<'REMOTE'
+            bash -s -- "$DEPLOY_PATH" "$DEPLOY_SCRIPT" "$RELEASE_TAG" <<'REMOTE'
           set -euo pipefail
           deploy_path="$1"
-          tag="$2"
+          deploy_script="$2"
+          tag="$3"
           cd "$deploy_path"
           GIT_TERMINAL_PROMPT=0 git pull --ff-only
-          sudo -n ./scripts/deploy.sh "$tag"
+          [[ -x "$deploy_script" ]] || { echo "Deploy script not found or not executable: $deploy_script" >&2; exit 1; }
+          sudo -n "$deploy_script" "$tag"
           REMOTE

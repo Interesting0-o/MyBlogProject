@@ -100,11 +100,11 @@ Git 本身不会在 `clone` / `pull` 时运行构建或下载附件，需要先�
 ### 手动下载
 
 ```bash
-./scripts/fetch-release.sh
-./scripts/fetch-release.sh v0.1.0
+DEST="$PWD/.artifacts" ./scripts/fetch-release.sh
+DEST="$PWD/.artifacts" ./scripts/fetch-release.sh v0.1.0
 ```
 
-产物目录在 `.artifacts/`，可通过 `DEST` 修改，通过 `RELEASE_TAG` 指定版本。下载会复用 git 的 `https.proxy`/`http.proxy`（`sudo` 时读取 `SUDO_USER` 的配置），也可以用 `RELEASE_PROXY` 覆盖。
+脚本默认输出到服务器布局的 `/opt/sudo4/repo/.artifacts`，本地使用请通过 `DEST` 指定，通过 `RELEASE_TAG` 指定版本。发布源固定为本仓库；下载会读取 `SUDO_USER` 的 git 代理配置，也可以用 `RELEASE_PROXY` 覆盖。
 
 ## 生产部署（热更新）
 
@@ -112,26 +112,35 @@ Git 本身不会在 `clone` / `pull` 时运行构建或下载附件，需要先�
 
 ### 快速部署
 
-适用于全新的 Linux x86_64 服务器（下文以 Ubuntu/Debian 为例）。默认仓库放在 `/srv/MyBlogProject`，运行目录为 `/opt/sudo4`。
+适用于全新的 Linux x86_64 服务器（下文以 Ubuntu/Debian 为例）。仓库放在 `/opt/sudo4/repo`，运行目录为 `/opt/sudo4`，部署脚本由服务器上的 `/opt/sudo4/deploy/` 管理。
 
-开始前：如果服务器不能直连 GitHub，请在 `git clone` 前配置 git 代理（部署时也可以传 `RELEASE_PROXY`）。克隆后在执行 `nginx -t` 前，把 `deploy/nginx.conf` 里的 `blog.example.com` 改成实际域名。
+开始前：如果服务器不能直连 GitHub，请在 `git clone` 前为 `deploy` 用户配置 git 代理（部署时也可以传 `RELEASE_PROXY`）。克隆后在执行 `nginx -t` 前，把 `deploy/nginx.conf` 里的 `blog.example.com` 改成实际域名。
 
 ```bash
 sudo apt update && sudo apt install -y nginx curl sqlite3
 sudo systemctl enable --now nginx
 
 sudo useradd --system --user-group --home /opt/sudo4 --shell /usr/sbin/nologin sudo4 2>/dev/null || true
-sudo install -d -o sudo4 -g sudo4 /opt/sudo4
-sudo install -d -o "$USER" -g "$USER" /srv/MyBlogProject
-git clone https://github.com/Interesting0-o/MyBlogProject.git /srv/MyBlogProject
+sudo adduser --disabled-password --gecos "" deploy
+sudo install -d -o root -g root -m 755 /opt/sudo4
+sudo install -d -o deploy -g deploy /opt/sudo4/repo
+sudo -u deploy git clone https://github.com/Interesting0-o/MyBlogProject.git /opt/sudo4/repo
 
-cd /srv/MyBlogProject
-sudo cp deploy/sudo4-api.service /etc/systemd/system/
+# 部署脚本由 root 拥有，仓库只作为来源；同步这一步就是人工审批点
+sudo install -d -o root -g root -m 755 /opt/sudo4/deploy
+sudo install -o root -g root -m 755 /opt/sudo4/repo/scripts/deploy.sh /opt/sudo4/deploy/deploy.sh
+sudo install -o root -g root -m 755 /opt/sudo4/repo/scripts/fetch-release.sh /opt/sudo4/deploy/fetch-release.sh
+
+sudo cp /opt/sudo4/repo/deploy/sudo4-api.service /etc/systemd/system/
 sudo systemctl daemon-reload
-sudo cp deploy/nginx.conf /etc/nginx/conf.d/sudo4.conf
+sudo cp /opt/sudo4/repo/deploy/nginx.conf /etc/nginx/conf.d/sudo4.conf
 sudo nginx -t && sudo systemctl reload nginx
 
-sudo ./scripts/deploy.sh
+echo 'deploy ALL=(root) NOPASSWD: /opt/sudo4/deploy/deploy.sh' | sudo tee /etc/sudoers.d/deploy
+sudo chmod 440 /etc/sudoers.d/deploy
+sudo visudo -cf /etc/sudoers.d/deploy
+
+sudo /opt/sudo4/deploy/deploy.sh latest
 sudo systemctl enable sudo4-api
 ```
 
@@ -142,57 +151,62 @@ curl http://127.0.0.1:3000/health
 curl -I http://服务器地址/
 ```
 
-后续更新：
+后续更新（`git pull` 由 `deploy` 用户执行；手动部署由管理员执行并输入 sudo 密码）：
 
 ```bash
-cd /srv/MyBlogProject
-git pull --ff-only
-sudo ./scripts/deploy.sh v0.1.0   # 固定版本；省略则使用 latest
+sudo -u deploy git -C /opt/sudo4/repo pull --ff-only
+sudo /opt/sudo4/deploy/deploy.sh v0.1.0   # 固定版本；省略则使用 latest
 ```
+
+如果修改了仓库里的部署脚本，需要人工同步到 root 目录，见 `docs/deployment.md` 的「脚本变更流程」。
 
 ### 目录结构
 
-生产环境建议把仓库和运行目录分开：
+仓库、部署脚本和运行目录分开，root 只执行自己拥有的脚本：
 
 ```text
-/opt/sudo4/
-├── current -> releases/v0.1.0-20261125010203/
-├── releases/
-├── backups/
-├── resource/sudo4.db
-└── .env
+/opt/sudo4/                     root:root      755
+├── deploy/                     root:root      755   ← root 唯一执行的代码来源
+│   ├── deploy.sh               root:root      755
+│   └── fetch-release.sh        root:root      755
+├── repo/                       deploy:deploy  755   ← 仅代码来源（git pull）
+├── current -> releases/v0.1.0-20261125010203/  root
+├── releases/                   root:root      755
+├── backups/                    root:root      700
+├── resource/sudo4.db           sudo4:sudo4    750
+└── .env                        sudo4:sudo4    600   ← 真实密钥唯一存放点
 ```
 
-`deploy.sh` 会依次：下载 Release 产物 → 备份 SQLite → 解包到 `releases/<id>/` → 原子切换 `current` 软链 → 重启服务 → 健康检查 `/health`，失败时自动切回上一个版本。首次运行会自动从 `.env.example` 生成 `/opt/sudo4/.env`，上线前请检查其中的 `BACKEND_HOST`、`DATABASE_URL` 等配置。
+`deploy.sh` 会依次：加部署锁 → 校验 tag 和产物 → 下载并校验 `SHA256SUMS` → 备份 SQLite → 解包到 `releases/<id>/` 并设为 `root:root` → 原子切换 `current` 软链 → 重启服务 → 健康检查 `/health`，失败时自动切回上一个版本。并发部署会直接报错；首次运行会从 Release 产物里的 `.env.example` 生成 `/opt/sudo4/.env`，上线前请检查其中的 `BACKEND_HOST`、`DATABASE_URL` 等配置。
 
 重启前会检查 systemd 单元是否已安装，缺失时直接报错；本机只想拉取产物时用 `SKIP_RESTART=1` 跳过检查和重启。
 
 常用操作：
 
 ```bash
-sudo ./scripts/deploy.sh v0.1.0               # 固定版本
-sudo APP_ROOT=/srv/sudo4 ./scripts/deploy.sh  # 自定义运行目录
-sudo SKIP_RESTART=1 ./scripts/deploy.sh       # 只拉取并切换，不重启
+sudo /opt/sudo4/deploy/deploy.sh v0.1.0               # 固定版本
+sudo APP_ROOT=/srv/sudo4 /opt/sudo4/deploy/deploy.sh  # 自定义运行目录
+sudo SKIP_RESTART=1 /opt/sudo4/deploy/deploy.sh       # 只拉取并切换，不重启
 ```
 
 受限 sudoers 只允许执行 `deploy.sh` 时，不允许 `sudo VAR=...` 设置环境变量；版本号请用位置参数，其他环境变量需要在 root shell 中设置。
 
 ### 自动部署（可选）
 
-`.github/workflows/deploy.yml` 会在 `Build release artifacts` 针对 `main` 构建成功后，通过 SSH 登录服务器执行 `git pull --ff-only` 和 `sudo ./scripts/deploy.sh latest`。版本标签可以在 Actions 里手动运行 `Deploy production` 并填写 `tag`。
+`.github/workflows/deploy.yml` 会在 `Build release artifacts` 针对 `main` 构建成功后，以 `deploy` 用户 SSH 登录服务器执行 `git pull --ff-only`，再通过 `sudo -n /opt/sudo4/deploy/deploy.sh latest` 触发 root 部署。版本标签可以在 Actions 里手动运行 `Deploy production` 并填写 `tag`。
 
 仓库需要配置：
 
-- Secrets：`DEPLOY_HOST`、`DEPLOY_USER`、`DEPLOY_KEY`（私钥的 base64 单行文本，`base64 -w0 ~/.ssh/sudo4_deploy`）；可选 `DEPLOY_KNOWN_HOSTS`（`ssh-keyscan -H 服务器地址` 的输出，非 22 端口加 `-p`，用于固定主机指纹）。
-- Variables：`DEPLOY_PATH`（默认 `/opt/sudo4`）、`DEPLOY_PORT`（默认 `22`）。如果按快速部署把仓库放在 `/srv/MyBlogProject`，需要把 `DEPLOY_PATH` 设为该路径。
+- Secrets：`DEPLOY_HOST`、`DEPLOY_USER`（`deploy`）、`DEPLOY_KEY`（`deploy` 私钥的 base64 单行文本，`base64 -w0 ~/.ssh/sudo4_deploy`）；可选 `DEPLOY_KNOWN_HOSTS`（`ssh-keyscan -H 服务器地址` 的输出，非 22 端口加 `-p`，用于固定主机指纹）。
+- Variables：`DEPLOY_PATH`（默认 `/opt/sudo4/repo`）、`DEPLOY_PORT`（默认 `22`）；可选 `DEPLOY_SCRIPT`（默认 `/opt/sudo4/deploy/deploy.sh`）。
 
-服务器需要已按快速部署初始化，`DEPLOY_USER` 能拉取仓库，并可免密执行部署脚本，例如：
+服务器需要已按快速部署初始化，`deploy` 用户只被允许免密执行部署脚本：
 
 ```sudoers
-deploy ALL=(root) NOPASSWD: /srv/MyBlogProject/scripts/deploy.sh
+deploy ALL=(root) NOPASSWD: /opt/sudo4/deploy/deploy.sh
 ```
 
-把 `deploy` 和路径换成实际值；如果修改了 `DEPLOY_PATH`，sudoers 里的路径也要同步修改。
+`azureuser` 仅用于人工管理，sudo 需要密码；如果设置了 `DEPLOY_SCRIPT`，sudoers 里的路径也要同步修改。
 
 热更新语义：
 

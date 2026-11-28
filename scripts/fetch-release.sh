@@ -1,56 +1,29 @@
 #!/usr/bin/env bash
 set -euo pipefail
+umask 022
 
-script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-repo_root="$(git -C "$script_dir" rev-parse --show-toplevel)"
+repo_root=/opt/sudo4/repo
 tag="${RELEASE_TAG:-${1:-latest}}"
 asset="${RELEASE_ASSET:-sudo4-linux-x86_64.tar.gz}"
 destination="${DEST:-${repo_root}/.artifacts}"
 
-if [[ -n "${GITHUB_REPOSITORY:-}" ]]; then
-  repo="$GITHUB_REPOSITORY"
-else
-  remote="$(git -C "$repo_root" config --get remote.origin.url 2>/dev/null || true)"
-
-  case "$remote" in
-    git@github.com:*)
-      repo="${remote#git@github.com:}"
-      ;;
-    ssh://git@github.com/*)
-      repo="${remote#ssh://git@github.com/}"
-      ;;
-    https://github.com/*)
-      repo="${remote#https://github.com/}"
-      ;;
-    http://github.com/*)
-      repo="${remote#http://github.com/}"
-      ;;
-    *)
-      printf 'Cannot detect a GitHub repository from remote: %s\n' "${remote:-<none>}" >&2
-      printf 'Set GITHUB_REPOSITORY=owner/repo and try again.\n' >&2
-      exit 1
-      ;;
-  esac
-fi
-
-repo="${repo%.git}"
-
-if [[ ! "$repo" =~ ^[^/]+/[^/]+$ ]]; then
-  printf 'Invalid GitHub repository: %s\n' "$repo" >&2
+if [[ ! "$tag" =~ ^[A-Za-z0-9._/-]+$ ]]; then
+  printf 'Invalid release tag: %s\n' "$tag" >&2
   exit 1
 fi
 
+if [[ "$destination" != /* || "$destination" == "/" ]]; then
+  printf 'Refusing unsafe destination: %s\n' "$destination" >&2
+  exit 1
+fi
+
+repo="Interesting0-o/MyBlogProject"
 base_url="https://github.com/${repo}/releases/download/${tag}"
 temporary_dir="$(mktemp -d)"
 trap 'rm -rf "$temporary_dir"' EXIT
 
 read_git_proxy() {
   local key="$1" value home config
-  value="$(git -C "$repo_root" config --get "$key" 2>/dev/null || true)"
-  if [[ -n "$value" ]]; then
-    printf '%s\n' "$value"
-    return 0
-  fi
 
   if [[ -n "${SUDO_USER:-}" && "$SUDO_USER" != "root" ]]; then
     home="$(getent passwd "$SUDO_USER" 2>/dev/null | cut -d: -f6)"
@@ -68,7 +41,7 @@ read_git_proxy() {
   fi
 }
 
-curl_args=(curl -fL --retry 3 --retry-delay 2)
+curl_args=(curl -fL --retry 3 --retry-delay 2 --connect-timeout 15 --max-time 600)
 proxy="${RELEASE_PROXY:-}"
 if [[ -z "$proxy" ]]; then
   proxy="$(read_git_proxy https.proxy)"
@@ -89,27 +62,28 @@ if ! "${curl_args[@]}" -o "$temporary_dir/$asset" "$base_url/$asset"; then
   exit 1
 fi
 
-if "${curl_args[@]}" -sS -o "$temporary_dir/SHA256SUMS" "$base_url/SHA256SUMS"; then
-  expected="$(awk -v name="$asset" '$2 == name { print $1 }' "$temporary_dir/SHA256SUMS")"
+if ! "${curl_args[@]}" -sS -o "$temporary_dir/SHA256SUMS" "$base_url/SHA256SUMS"; then
+  printf 'SHA256SUMS is unavailable. Aborting.\n' >&2
+  exit 1
+fi
 
-  if [[ -z "$expected" ]]; then
-    printf 'Checksum for %s was not found. Aborting.\n' "$asset" >&2
-    exit 1
-  fi
+expected="$(awk -v name="$asset" '$2 == name { print $1 }' "$temporary_dir/SHA256SUMS")"
 
-  actual="$(sha256sum "$temporary_dir/$asset" | awk '{ print $1 }')"
+if [[ -z "$expected" ]]; then
+  printf 'Checksum for %s was not found. Aborting.\n' "$asset" >&2
+  exit 1
+fi
 
-  if [[ "$actual" != "$expected" ]]; then
-    printf 'Checksum mismatch for %s. Aborting.\n' "$asset" >&2
-    exit 1
-  fi
-else
-  printf 'Warning: SHA256SUMS is unavailable; skipping verification.\n' >&2
+actual="$(sha256sum "$temporary_dir/$asset" | awk '{ print $1 }')"
+
+if [[ "$actual" != "$expected" ]]; then
+  printf 'Checksum mismatch for %s. Aborting.\n' "$asset" >&2
+  exit 1
 fi
 
 rm -rf "$destination"
 mkdir -p "$destination"
-tar -xzf "$temporary_dir/$asset" -C "$destination" --strip-components=1
+tar --no-same-owner --no-same-permissions -xzf "$temporary_dir/$asset" -C "$destination" --strip-components=1
 chmod +x "$destination/sudo4-api"
 
 if [[ ! -f "$destination/dist/index.html" ]]; then

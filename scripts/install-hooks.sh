@@ -12,6 +12,6 @@ chmod +x \
 
 printf 'Git hooks installed. Future git pulls will update .artifacts automatically.\n'
 
-if ! "$repo_root/scripts/fetch-release.sh"; then
+if ! DEST="$repo_root/.artifacts" "$repo_root/scripts/fetch-release.sh"; then
   printf 'Artifacts were not downloaded yet. Run scripts/fetch-release.sh after the first release build.\n' >&2
 fi

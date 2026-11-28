@@ -1,8 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
-
-script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-repo_root="$(git -C "$script_dir" rev-parse --show-toplevel)"
+umask 022
 
 app_root="${APP_ROOT:-/opt/sudo4}"
 app_user="${APP_USER:-}"
@@ -24,6 +22,31 @@ die() { printf '[deploy] ERROR: %s\n' "$*" >&2; exit 1; }
 
 if [[ ! "$health_attempts" =~ ^[1-9][0-9]*$ ]]; then
   die "HEALTH_ATTEMPTS must be a positive integer"
+fi
+
+if [[ ! "$tag" =~ ^[A-Za-z0-9._/-]+$ ]]; then
+  die "invalid release tag: $tag"
+fi
+
+if [[ ! "$keep_releases" =~ ^[0-9]+$ ]]; then
+  die "KEEP_RELEASES must be a non-negative integer"
+fi
+
+if [[ ! "$keep_backups" =~ ^[0-9]+$ ]]; then
+  die "KEEP_BACKUPS must be a non-negative integer"
+fi
+
+command -v flock >/dev/null 2>&1 || die "flock is required"
+
+mkdir -p "$app_root"
+if [[ "$EUID" -eq 0 ]]; then
+  chown root:root "$app_root"
+  chmod 755 "$app_root"
+fi
+
+exec 9>"$app_root/.deploy.lock"
+if ! flock -n 9; then
+  die "another deployment is already running"
 fi
 
 if [[ -z "$app_user" ]]; then
@@ -73,7 +96,7 @@ if [[ -n "$source_dir" ]]; then
 else
   staging="$(mktemp -d)"
   staging_created=1
-  DEST="$staging" "$repo_root/scripts/fetch-release.sh" "$tag"
+  DEST="$staging" /opt/sudo4/deploy/fetch-release.sh "$tag"
 fi
 
 [[ -x "$staging/sudo4-api" ]] || die "Artifact is missing an executable sudo4-api"
@@ -81,15 +104,24 @@ fi
 
 mkdir -p "$app_root" "$releases_dir" "$backups_dir" "$app_root/resource"
 
+if [[ "$EUID" -eq 0 ]]; then
+  chown root:root "$releases_dir"
+  chmod 755 "$releases_dir"
+  chown root:root "$backups_dir"
+  chmod 700 "$backups_dir"
+fi
+
 if [[ ! -f "$app_root/.env" ]]; then
-  install -m 600 "$repo_root/.env.example" "$app_root/.env"
+  [[ -f "$staging/.env.example" ]] || die "Artifact is missing .env.example"
+  install -m 600 "$staging/.env.example" "$app_root/.env"
   log "Created $app_root/.env from .env.example; review it before going live."
 fi
 
 if [[ "$EUID" -eq 0 ]]; then
   if id -u "$app_user" >/dev/null 2>&1; then
-    chown "$app_user":"$app_group" "$app_root/.env" "$app_root/resource" "$backups_dir"
+    chown "$app_user":"$app_group" "$app_root/.env" "$app_root/resource"
     chmod 600 "$app_root/.env"
+    chmod 750 "$app_root/resource"
   else
     log "Warning: user $app_user does not exist; adjust User= in the systemd unit."
   fi
@@ -104,6 +136,11 @@ resolve_db_path() {
   local url=""
   if [[ -f "$app_root/.env" ]]; then
     url="$(awk -F= '$1 == "DATABASE_URL" { sub(/^[^=]*=/, ""); print; exit }' "$app_root/.env")"
+    url="${url%$'\r'}"
+    url="${url#\"}"
+    url="${url%\"}"
+    url="${url#\'}"
+    url="${url%\'}"
   fi
 
   case "$url" in
@@ -155,8 +192,14 @@ while [[ -e "$new_release" ]]; do
 done
 
 mkdir -p "$new_release"
+chmod 755 "$new_release"
 install -m 0755 "$staging/sudo4-api" "$new_release/sudo4-api"
 cp -a "$staging/dist" "$new_release/dist"
+
+if [[ "$EUID" -eq 0 ]]; then
+  chown -R root:root "$new_release"
+  chmod -R go-w "$new_release"
+fi
 
 previous="$(readlink -f "$current_link" 2>/dev/null || true)"
 if [[ ! -d "$previous" ]]; then
